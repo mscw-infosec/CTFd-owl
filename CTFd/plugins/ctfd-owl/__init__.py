@@ -1,31 +1,35 @@
 from __future__ import division  # Use floating point for math calculations
 
-from CTFd.plugins import register_plugin_assets_directory
-from CTFd import utils
-from flask import render_template, request, jsonify, Blueprint, current_app, session
-from CTFd.utils.decorators import admins_only, authed_only
-from .models import DynamicCheckChallenge
-from .challenge_type import DynamicCheckValueChallenge
-from CTFd.plugins.challenges import CHALLENGE_CLASSES
-from .db_utils import DBUtils
-from .control_utils import ControlUtil
-from .frp_utils import FrpUtils
-import datetime, fcntl
+import datetime
+import fcntl
+import logging
+import os
+import sys
+
+from flask import render_template, request, jsonify, Blueprint
 from flask_apscheduler import APScheduler
-import logging, os, sys
+
+from CTFd import utils
+from CTFd.plugins import register_plugin_assets_directory
+from CTFd.plugins.challenges import CHALLENGE_CLASSES
+from CTFd.utils.decorators import admins_only, authed_only
+from .challenge_type import DynamicCheckValueChallenge
+from .control_utils import ControlUtil
+from .db_utils import DBUtils
 from .extensions import get_mode
-from CTFd.plugins.migrations import upgrade
-from .extensions import log
+from .frp_utils import FrpUtils
+from .models import DynamicCheckChallenge
+
 
 def load(app):
     # upgrade()
     plugin_name = __name__.split('.')[-1]
     app.db.create_all()
     register_plugin_assets_directory(
-        app, base_path=f"/plugins/{plugin_name}/assets", 
+        app, base_path=f"/plugins/{plugin_name}/assets",
         endpoint=f'plugins.{plugin_name}.assets'
     )
-    
+
     DynamicCheckValueChallenge.templates = {
         "create": f"/plugins/{plugin_name}/assets/create.html",
         "update": f"/plugins/{plugin_name}/assets/update.html",
@@ -73,7 +77,6 @@ def load(app):
     def admin_list_configs():
         configs = DBUtils.get_all_configs()
         return render_template('configs.html', configs=configs)
-
 
     @owl_blueprint.route('/admin/settings', methods=['PATCH'])
     @admins_only
@@ -145,18 +148,22 @@ def load(app):
                     if dynamic_docker_challenge.redirect_type == "http":
                         if int(configs.get('frp_http_port', "80")) == 80:
                             return jsonify({'success': True, 'type': 'http', 'domain': data.docker_id + "." + domain,
-                                               'remaining_time': timeout - (datetime.datetime.utcnow() - data.start_time).seconds,
-                                               'lan_domain': lan_domain})
+                                            'remaining_time': timeout - (
+                                                        datetime.datetime.utcnow() - data.start_time).seconds,
+                                            'lan_domain': lan_domain})
                         else:
                             return jsonify({'success': True, 'type': 'http',
-                                               'domain': data.docker_id + "." + domain + ":" + configs.get('frp_http_port', "80"),
-                                               'remaining_time': timeout - (datetime.datetime.utcnow() - data.start_time).seconds,
-                                               'lan_domain': lan_domain})
+                                            'domain': data.docker_id + "." + domain + ":" + configs.get('frp_http_port',
+                                                                                                        "80"),
+                                            'remaining_time': timeout - (
+                                                        datetime.datetime.utcnow() - data.start_time).seconds,
+                                            'lan_domain': lan_domain})
                     else:
-                        return jsonify({'success': True, 'type': 'redirect', 'ip': configs.get('frp_direct_ip_address', ""),
-                                           'port': data.port,
-                                           'remaining_time': timeout - (datetime.datetime.utcnow() - data.start_time).seconds,
-                                           'lan_domain': lan_domain})
+                        return jsonify(
+                            {'success': True, 'type': 'redirect', 'ip': configs.get('frp_direct_ip_address', ""),
+                             'port': data.port,
+                             'remaining_time': timeout - (datetime.datetime.utcnow() - data.start_time).seconds,
+                             'lan_domain': lan_domain})
             else:
                 return jsonify({'success': True})
         except Exception as e:
@@ -174,7 +181,8 @@ def load(app):
             # check whether exist container before
             existContainer = ControlUtil.get_container(user_id)
             if existContainer:
-                return jsonify({'success': False, 'msg': 'You have boot {} before.'.format(existContainer.challenge.name)})
+                return jsonify(
+                    {'success': False, 'msg': 'You have boot {} before.'.format(existContainer.challenge.name)})
             else:
                 challenge_id = request.args.get('challenge_id')
                 ControlUtil.check_challenge(challenge_id, user_id)
@@ -195,7 +203,9 @@ def load(app):
                     else:
                         return jsonify({'success': False, 'msg': str(result)})
                 except Exception as e:
-                    return jsonify({'success': True, 'msg':'Failed when launch instance, please contact with the admin. Error Type:{} Error msg:{}'.format(e.__class__.__name__, e)})
+                    return jsonify({'success': True,
+                                    'msg': 'Failed when launch instance, please contact with the admin. Error Type:{} Error msg:{}'.format(
+                                        e.__class__.__name__, e)})
         except Exception as e:
             return jsonify({'success': False, 'msg': str(e)})
 

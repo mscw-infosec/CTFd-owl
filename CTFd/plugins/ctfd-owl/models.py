@@ -4,6 +4,7 @@ from CTFd.models import (
 )
 import datetime
 
+
 class DynamicCheckChallenge(Challenges):
     __mapper_args__ = {"polymorphic_identity": "dynamic_check_docker"}
     id = db.Column(None, db.ForeignKey("challenges.id",
@@ -26,6 +27,7 @@ class DynamicCheckChallenge(Challenges):
         super(DynamicCheckChallenge, self).__init__(**kwargs)
         self.initial = kwargs["value"]
 
+
 class OwlConfigs(db.Model):
     key = db.Column(db.String(length=128), primary_key=True)
     value = db.Column(db.Text)
@@ -33,6 +35,7 @@ class OwlConfigs(db.Model):
     def __init__(self, key, value):
         self.key = key
         self.value = value
+
 
 class OwlContainers(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -53,4 +56,3 @@ class OwlContainers(db.Model):
 
     def __init__(self, *args, **kwargs):
         super(OwlContainers, self).__init__(**kwargs)
-

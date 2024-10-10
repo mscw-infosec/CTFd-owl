@@ -1,12 +1,12 @@
 import time
 
+from flask import session
+from sqlalchemy.sql import and_
+
 from CTFd.models import Challenges, Users
 from .db_utils import DBUtils
-from .frp_utils import FrpUtils
 from .docker_utils import DockerUtils
-from sqlalchemy.sql import and_
-from flask import session
-from .extensions import log
+
 
 class ControlUtil:
     @staticmethod
@@ -17,7 +17,6 @@ class ControlUtil:
             return True
         else:
             return rq
-
 
     @staticmethod
     def destroy_container(user_id):

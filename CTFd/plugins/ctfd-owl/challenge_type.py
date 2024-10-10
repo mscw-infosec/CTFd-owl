@@ -20,11 +20,12 @@ from CTFd.utils.uploads import delete_file
 from .models import DynamicCheckChallenge, OwlContainers
 from .extensions import get_mode
 
+
 class DynamicCheckValueChallenge(BaseChallenge):
     id = "dynamic_check_docker"  # Unique identifier used to register challenges
     name = "dynamic_check_docker"  # Name of a challenge type
     # Route at which files are accessible. This must be registered using register_plugin_assets_directory()
-    
+
     # Blueprint used to access the static_folder directory.
     blueprint = Blueprint(
         "ctfd-owl-challenge",
@@ -88,12 +89,12 @@ class DynamicCheckValueChallenge(BaseChallenge):
 
         solve_count = (
             Solves.query.join(Model, Solves.account_id == Model.id)
-                .filter(
+            .filter(
                 Solves.challenge_id == challenge.id,
-                Model.hidden == False,
-                Model.banned == False,
+                Model.hidden is False,
+                Model.banned is False,
             )
-                .count()
+            .count()
         )
 
         # It is important that this calculation takes into account floats.
@@ -219,12 +220,12 @@ class DynamicCheckValueChallenge(BaseChallenge):
 
         solve_count = (
             Solves.query.join(Model, Solves.account_id == Model.id)
-                .filter(
+            .filter(
                 Solves.challenge_id == challenge.id,
                 Model.hidden == False,
                 Model.banned == False,
             )
-                .count()
+            .count()
         )
 
         # We subtract -1 to allow the first solver to get max point value

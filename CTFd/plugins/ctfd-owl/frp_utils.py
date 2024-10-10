@@ -4,6 +4,7 @@ from .db_utils import DBUtils
 from .models import DynamicCheckChallenge
 from .extensions import log
 
+
 class FrpUtils:
     @staticmethod
     def update_frp_redirect():
@@ -40,36 +41,39 @@ class FrpUtils:
                 .first_or_404()
             dirname = dynamic_docker_challenge.dirname.split("/")[1]
             redirect_port = dynamic_docker_challenge.redirect_port
-            container_service_local_ip = "{}_user{}_{}_service_1".format(prefix, c.user_id, dirname).lower() # nginx, etc
+            container_service_local_ip = "{}_user{}_{}_service_1".format(prefix, c.user_id,
+                                                                         dirname).lower()  # nginx, etc
             if dynamic_docker_challenge.redirect_type.upper() == 'HTTP':
                 output += http_template % (
-                      container_service_local_ip
-                    , container_service_local_ip
-                    , redirect_port
-                    , c.docker_id)
+                    container_service_local_ip,
+                    container_service_local_ip,
+                    redirect_port,
+                    c.docker_id)
             else:
                 output += direct_template % (
-                      container_service_local_ip
-                    , container_service_local_ip
-                    , redirect_port
-                    , c.port
-                    , container_service_local_ip
-                    , container_service_local_ip
-                    , redirect_port
-                    , c.port)
+                    container_service_local_ip,
+                    container_service_local_ip,
+                    redirect_port,
+                    c.port,
+                    container_service_local_ip,
+                    container_service_local_ip,
+                    redirect_port,
+                    c.port)
         frp_api_ip = "frpc"
         frp_api_port = "7400"
         # print(output)
         try:
             if configs.get("frpc_config_template") is not None:
-                assert requests.put("http://" + frp_api_ip + ":" + frp_api_port + "/api/config", output, timeout=5).status_code == 200
-                assert requests.get("http://" + frp_api_ip + ":" + frp_api_port + "/api/reload", timeout=5).status_code == 200
+                assert requests.put("http://" + frp_api_ip + ":" + frp_api_port + "/api/config", output,
+                                    timeout=5).status_code == 200
+                assert requests.get("http://" + frp_api_ip + ":" + frp_api_port + "/api/reload",
+                                    timeout=5).status_code == 200
             else:
                 pass
-        except Exception as e:
+        except Exception:
             import traceback
             log("owl",
                 '[ERROR]frp reload: {err}',
                 err=traceback.format_exc()
-            )
+                )
             pass

@@ -1,1 +1,2 @@
 docker-compose
+PyYAML==5.3.1
