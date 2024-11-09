@@ -1,16 +1,17 @@
 # CTFd-owl
 
-**Dynamic Check Challenges with docker-compose for CTFd**
-
 Forked from [CTFd-Owl](https://github.com/BIT-NSC/ctfd-owl.git) by BIT-NSC.
 Added english documentaion & updated scripts.
+
+## TODO
+
+1. If the task was updated, it won't be updated at /home/docker for all users who have already run it. Therefore, we need a "hard reset" button at the task page inside admin panel.
 
 ## Features
 
 1. The port is randomized on each container startup.
 2. Adapted to "teams" and "users" modes. In "teams" mode, users of the same team will use the same container.
 3. Unlike in BIT-NSC's version, dynamic flags have no support.
-
 
 ## Installation
 
