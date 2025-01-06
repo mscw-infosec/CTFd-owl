@@ -9,7 +9,7 @@ Added english documentaion & some new features.
 2. Adapted to "teams" and "users" modes. In "teams" mode, users of the same team will use the same container. # this is not tested or supported properly, open for PRs
 3. Unlike in BIT-NSC's version, dynamic flags have no support.
 4. Multiple containers + ports per challenge.
-5. FLAG variable exported from CTFd when running `docker compose up` on challenge.
+5. FLAG variable exported from CTFd to environment when running `docker compose up` on challenge.
 
 ## Installation
 
