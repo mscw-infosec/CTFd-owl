@@ -1,24 +1,23 @@
 from __future__ import division  # Use floating point for math calculations
 
-import datetime
-import fcntl
-import logging
-import os
-import sys
+from flask_sqlalchemy import SQLAlchemy
 
-from flask import render_template, request, jsonify, Blueprint
-from flask_apscheduler import APScheduler
-
-from CTFd import utils
 from CTFd.plugins import register_plugin_assets_directory
-from CTFd.plugins.challenges import CHALLENGE_CLASSES
+from CTFd import utils
+from flask import render_template, request, jsonify, Blueprint, current_app, session
 from CTFd.utils.decorators import admins_only, authed_only
+from .models import DynamicCheckChallenge, OwlContainers
 from .challenge_type import DynamicCheckValueChallenge
-from .control_utils import ControlUtil
+from CTFd.plugins.challenges import CHALLENGE_CLASSES
 from .db_utils import DBUtils
-from .extensions import get_mode
+from .control_utils import ControlUtil
 from .frp_utils import FrpUtils
-from .models import DynamicCheckChallenge
+import datetime, fcntl
+from flask_apscheduler import APScheduler
+import logging, os, sys
+from .extensions import get_mode
+from CTFd.plugins.migrations import upgrade
+from .extensions import log
 
 
 def load(app):
@@ -126,44 +125,24 @@ def load(app):
             user_id = get_mode()
             challenge_id = request.args.get('challenge_id')
             ControlUtil.check_challenge(challenge_id, user_id)
-            data = ControlUtil.get_container(user_id=user_id)
+            data: list[OwlContainers] = ControlUtil.get_container(user_id=user_id)
             configs = DBUtils.get_all_configs()
-            domain = configs.get('frp_http_domain_suffix', "")
             timeout = int(configs.get("docker_timeout", "3600"))
 
+            containers_data = []
             if data is not None:
-                if int(data.challenge_id) != int(challenge_id):
-                    return jsonify({})
-                dynamic_docker_challenge = DynamicCheckChallenge.query \
-                    .filter(DynamicCheckChallenge.id == data.challenge_id) \
-                    .first_or_404()
-                lan_domain = str(user_id) + "-" + data.docker_id
+                for container in data:
+                    if int(container.challenge_id) != int(challenge_id):
+                        return jsonify({})
 
-                if dynamic_docker_challenge.deployment == "single":
-                    return jsonify({'success': True, 'type': 'redirect', 'ip': configs.get('frp_direct_ip_address', ""),
-                                    'port': data.port,
-                                    'remaining_time': timeout - (datetime.datetime.utcnow() - data.start_time).seconds,
-                                    'lan_domain': lan_domain})
-                else:
-                    if dynamic_docker_challenge.redirect_type == "http":
-                        if int(configs.get('frp_http_port', "80")) == 80:
-                            return jsonify({'success': True, 'type': 'http', 'domain': data.docker_id + "." + domain,
-                                            'remaining_time': timeout - (
-                                                        datetime.datetime.utcnow() - data.start_time).seconds,
-                                            'lan_domain': lan_domain})
-                        else:
-                            return jsonify({'success': True, 'type': 'http',
-                                            'domain': data.docker_id + "." + domain + ":" + configs.get('frp_http_port',
-                                                                                                        "80"),
-                                            'remaining_time': timeout - (
-                                                        datetime.datetime.utcnow() - data.start_time).seconds,
-                                            'lan_domain': lan_domain})
-                    else:
-                        return jsonify(
-                            {'success': True, 'type': 'redirect', 'ip': configs.get('frp_direct_ip_address', ""),
-                             'port': data.port,
-                             'remaining_time': timeout - (datetime.datetime.utcnow() - data.start_time).seconds,
-                             'lan_domain': lan_domain})
+                    lan_domain = str(user_id) + "-" + container.docker_id
+                    containers_data.append({
+                        "port": container.port,
+                        "remaining_time": timeout - (datetime.datetime.utcnow() - container.start_time).seconds,
+                        "lan_domain": lan_domain
+                    })
+                return jsonify({'success': True, 'type': 'redirect', 'ip': configs.get('frp_direct_ip_address', ""),
+                                'containers_data': containers_data})
             else:
                 return jsonify({'success': True})
         except Exception as e:
@@ -197,7 +176,7 @@ def load(app):
                     .filter(DynamicCheckChallenge.id == challenge_id) \
                     .first_or_404()
                 try:
-                    result = ControlUtil.new_container(user_id=user_id, challenge_id=challenge_id)
+                    result = ControlUtil.new_container(user_id=user_id, challenge_id=challenge_id, prefix=configs.get("docker_flag_prefix"))
                     if isinstance(result, bool):
                         return jsonify({'success': True})
                     else:
@@ -233,10 +212,10 @@ def load(app):
         challenge_id = request.args.get('challenge_id')
         ControlUtil.check_challenge(challenge_id, user_id)
         docker_max_renew_count = int(configs.get("docker_max_renew_count"))
-        container = ControlUtil.get_container(user_id)
-        if container is None:
+        containers: list[OwlContainers] = DBUtils.get_current_containers(user_id)
+        if containers is None:
             return jsonify({'success': False, 'msg': 'Instance not found.'})
-        if container.renew_count >= docker_max_renew_count:
+        if containers[0].renew_count >= docker_max_renew_count:
             return jsonify({'success': False, 'msg': 'Max renewal times exceed.'})
 
         ControlUtil.expired_container(user_id=user_id)

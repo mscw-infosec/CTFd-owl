@@ -1,4 +1,5 @@
 import datetime
+import uuid
 
 from .models import OwlConfigs, OwlContainers
 
@@ -35,9 +36,9 @@ class DBUtils:
         db.session.close()
 
     @staticmethod
-    def new_container(user_id, challenge_id, flag, docker_id, port=0, ip=""):
+    def new_container(user_id, challenge_id, flag, docker_id, port=0, ip="", name=""):
         container = OwlContainers(user_id=user_id, challenge_id=challenge_id, flag=flag, docker_id=docker_id, port=port,
-                                  ip=ip)
+                                  ip=ip, name=name)
         db.session.add(container)
         db.session.commit()
         db.session.close()
@@ -51,7 +52,7 @@ class DBUtils:
         if len(records) == 0:
             return None
 
-        return records[0]
+        return records
 
     @staticmethod
     def get_container_by_port(port):
@@ -87,13 +88,13 @@ class DBUtils:
         configs = DBUtils.get_all_configs()
         timeout = int(configs.get("docker_timeout", "3600"))
 
-        r = records[0]
-        r.start_time = r.start_time + datetime.timedelta(seconds=timeout)
+        for r in records:
+            r.start_time = r.start_time + datetime.timedelta(seconds=timeout)
 
-        if r.start_time > datetime.datetime.utcnow():
-            r.start_time = datetime.datetime.utcnow()
+            if r.start_time > datetime.datetime.utcnow():
+                r.start_time = datetime.datetime.utcnow()
 
-        r.renew_count += 1
+            r.renew_count += 1
         db.session.commit()
         db.session.close()
 

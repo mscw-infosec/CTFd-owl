@@ -1,11 +1,10 @@
 version: "3"
 services:
-    service:
+    service_proxied:
         image: nginx:latest
         volumes:
             - ./nginx:/etc/nginx/conf.d
             - ./www:/var/www/html
-            # nginx和php必须同时映射才能通信
         restart: always
         environment: 
             TZ: Asia/Shanghai
@@ -22,15 +21,13 @@ services:
             - ./php/php-fpm.conf:/usr/local/etc/php-fpm.d/www.conf
             - ./www:/var/www/html
             - "$PWD/flag:/var/www/html/fl0g:ro"
-            # nginx和php必须同时映射才能通信      
-        environment: 
+        environment:
             TZ: Asia/Shanghai
         restart: always
         networks:
             - net
 
 networks:
-    # 配置docker network
-    net: 
+    net:
       external: 
          name: bitnsc_frp_containers

@@ -39,6 +39,7 @@ class OwlConfigs(db.Model):
 
 class OwlContainers(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), default="")
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     challenge_id = db.Column(db.Integer, db.ForeignKey("challenges.id"))
     docker_id = db.Column(db.String(32))

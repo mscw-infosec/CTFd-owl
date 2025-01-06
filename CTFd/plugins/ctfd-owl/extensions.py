@@ -9,7 +9,6 @@ import time
 USERS_MODE = "users"
 TEAMS_MODE = "teams"
 
-
 def get_mode():
     mode = get_config("user_mode")
     if mode == TEAMS_MODE:
@@ -23,8 +22,7 @@ def get_mode():
     elif mode == USERS_MODE:
         user_id = current_user.get_current_user().id
     return user_id
-
-
+    
 def log(logger, format, **kwargs):
     logger = logging.getLogger(logger)
     props = {

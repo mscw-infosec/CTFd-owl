@@ -70,19 +70,18 @@ function loadInfo () {
                     '<h6 class="card-subtitle mb-2 text-muted" id="owl-challenge-count-down">' + response.msg + '</h6>'
             );
         }
-        else if(response.remaining_time === undefined) {
+        else if(response.containers_data === undefined || response.containers_data[0].remaining_time === undefined) {
             CTFd.lib.$('#owl-panel').html(
                     '<h5 class="card-title">Instance Info</h5><hr>' +
                     '<button type="button" class="btn btn-primary card-link" id="owl-button-boot" onclick="CTFd._internal.challenge.boot()">Launch</button>'
             );
         } else {
             var panel_html = '<h5 class="card-title">Instance Info</h5><hr>' +
-                    '<h6 class="card-subtitle mb-2 text-muted" id="owl-challenge-count-down">Remaining Time: ' + response.remaining_time + 's</h6>';
-            if(response.type === 'http') {
-                panel_html += '<p class="card-text">Domain: <br/>' + '<a href="//' + response.domain + '" target="_blank">' + response.domain + '</a></p>';
-            } else {
-                panel_html += '<p class="card-text">Domain: <br/>' + '<a href="//' + response.ip + ':' + response.port + '" target="_blank">' + response.ip + ':' + response.port + '</a></p>';
-            }
+                    '<h6 class="card-subtitle mb-2 text-muted" id="owl-challenge-count-down">Remaining Time: ' + response.containers_data[0].remaining_time + 's</h6>';
+            panel_html += '<p class="card-text">Services: <br/>'
+            response.containers_data.forEach((container, i) => {
+                panel_html += '<a href="//' + response.ip + ':' + container.port + '" target="_blank">' + response.ip + ':' + container.port + '</a></p>'
+            });
             panel_html += '<button type="button" class="btn btn-danger card-link" id="owl-button-destroy" onclick="CTFd._internal.challenge.destroy()">Destroy</button>' +
                           '<button type="button" class="btn btn-success card-link" id="owl-button-renew" onclick="CTFd._internal.challenge.renew()">Renew</button>';
             CTFd.lib.$('#owl-panel').html(panel_html);
