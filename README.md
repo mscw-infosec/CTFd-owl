@@ -1,7 +1,7 @@
 # CTFd-owl
 
 Forked from [CTFd-Owl](https://github.com/BIT-NSC/ctfd-owl.git) by BIT-NSC.
-Added english documentaion & updated scripts.
+Added english documentaion & some new features.
 
 ## Features
 
