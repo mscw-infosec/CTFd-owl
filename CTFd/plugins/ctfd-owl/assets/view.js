@@ -80,8 +80,9 @@ function loadInfo () {
                     '<h6 class="card-subtitle mb-2 text-muted" id="owl-challenge-count-down">Remaining Time: ' + response.containers_data[0].remaining_time + 's</h6>';
             panel_html += '<p class="card-text">Services: <br/>'
             response.containers_data.forEach((container, i) => {
-                panel_html += '<a href="//' + response.ip + ':' + container.port + '" target="_blank">' + response.ip + ':' + container.port + '</a></p>'
+                panel_html += (i + 1) + '. <a href="//' + response.ip + ':' + container.port + '" target="_blank">' + response.ip + ':' + container.port + '</a><br/>'
             });
+            panel_html += '</p>'
             panel_html += '<button type="button" class="btn btn-danger card-link" id="owl-button-destroy" onclick="CTFd._internal.challenge.destroy()">Destroy</button>' +
                           '<button type="button" class="btn btn-success card-link" id="owl-button-renew" onclick="CTFd._internal.challenge.renew()">Renew</button>';
             CTFd.lib.$('#owl-panel').html(panel_html);
