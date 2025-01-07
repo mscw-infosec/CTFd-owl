@@ -40,26 +40,27 @@ class FrpUtils:
                 .filter(DynamicCheckChallenge.id == c.challenge_id) \
                 .first_or_404()
             dirname = dynamic_docker_challenge.dirname.split("/")[1]
-            redirect_port = dynamic_docker_challenge.redirect_port
+            redirect_port = dynamic_docker_challenge.redirect_port if c.contport == 0 else c.contport
             container_service_local_ip = c.name
             # container_service_local_ip = "{}_user{}_{}_service_proxied_1".format(prefix, c.user_id,
             #                                                              dirname).lower()  # nginx, etc
-            if dynamic_docker_challenge.redirect_type.upper() == 'HTTP':
-                output += http_template % (
-                    container_service_local_ip
-                    , container_service_local_ip
-                    , redirect_port
-                    , c.docker_id)
-            else:
-                output += direct_template % (
-                    container_service_local_ip
-                    , container_service_local_ip
-                    , redirect_port
-                    , c.port
-                    , container_service_local_ip
-                    , container_service_local_ip
-                    , redirect_port
-                    , c.port)
+            # if dynamic_docker_challenge.redirect_type.upper() == 'HTTP':
+            #     output += http_template % (
+            #         container_service_local_ip
+            #         , container_service_local_ip
+            #         , redirect_port
+            #         , c.docker_id)
+            # else:
+            #
+            output += direct_template % (
+                container_service_local_ip
+                , container_service_local_ip
+                , redirect_port
+                , c.port
+                , container_service_local_ip
+                , container_service_local_ip
+                , redirect_port
+                , c.port)
         frp_api_ip = "frpc"
         frp_api_port = "7400"
         # print(output)

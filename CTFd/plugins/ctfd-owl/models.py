@@ -49,6 +49,10 @@ class OwlContainers(db.Model):
     renew_count = db.Column(db.Integer, nullable=False, default=0)
     flag = db.Column(db.String(128), nullable=False)
 
+    conntype = db.Column(db.String(32), default="")
+    comment = db.Column(db.String(128), default="")
+    contport = db.Column(db.Integer)
+
     # Relationships
     user = db.relationship("Users", foreign_keys="OwlContainers.user_id", lazy="select")
     challenge = db.relationship(

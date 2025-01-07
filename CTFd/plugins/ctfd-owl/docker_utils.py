@@ -47,13 +47,32 @@ class DockerUtils:
 
             ports = []
             ports_list = [_.port for _ in all_container]
-            compose_data: dict[str, Union[str, int, dict]] = yaml.safe_load(open(sname + '/docker-compose.yml', 'r').read())
+            compose_data: dict[str, Union[str, int, dict]] = yaml.safe_load(
+                open(sname + '/docker-compose.yml', 'r').read())
             for service in compose_data["services"].keys():
-                if service.endswith("_proxied"):
+                if "labels" in compose_data["services"][service] and \
+                        "owl.proxy=true" in compose_data["services"][service]["labels"]:
                     port = random.randint(min_port, max_port)
                     while port in ports_list or port in [x["port"] for x in ports]:
                         port = random.randint(min_port, max_port)
-                    ports.append({"service": service, "port": port})
+                    conntype = ""
+                    comment = ""
+                    contport = 0
+                    for label in compose_data["services"][service]["labels"]:
+                        if label.startswith("owl.label.conntype"):
+                            conntype = label.split("=")[1]
+                        if label.startswith("owl.label.comment"):
+                            comment = label.split("=")[1]
+                        if label.startswith("owl.proxy.port"):
+                            contport = int(label.split("=")[1])
+                    ports.append(
+                        {
+                            "service": service,
+                            "port": port,
+                            "conntype": conntype,
+                            "comment": comment,
+                            "cont_port": contport,
+                        })
         except Exception as e:
             log("owl",
                 'Stdout: {out}\nStderr: {err}',
@@ -70,7 +89,8 @@ class DockerUtils:
             process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # up docker-compose
-            command = "export FLAG={} && cd ".format(flag) + dname + " && docker-compose -H={} -f run.yml up -d".format(socket)
+            command = "export FLAG={} && cd ".format(flag) + dname + " && docker-compose -H={} -f run.yml up -d".format(
+                socket)
             process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             log(
                 "owl",

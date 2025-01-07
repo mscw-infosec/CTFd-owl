@@ -80,7 +80,15 @@ function loadInfo () {
                     '<h6 class="card-subtitle mb-2 text-muted" id="owl-challenge-count-down">Remaining Time: ' + response.containers_data[0].remaining_time + 's</h6>';
             panel_html += '<p class="card-text">Services: <br/>'
             response.containers_data.forEach((container, i) => {
-                panel_html += (i + 1) + '. <a href="//' + response.ip + ':' + container.port + '" target="_blank">' + response.ip + ':' + container.port + '</a><br/>'
+                let comment = "";
+                let conntype = "";
+                if (container.comment !== "") {
+                    comment = '<br/><a>(' + container.comment + ')</a>';
+                }
+                if (container.conntype !== "") {
+                    conntype = '(' + container.conntype + ') ';
+                }
+                panel_html += (i + 1) + '. ' + conntype + '<a href="//' + response.ip + ':' + container.port + '" target="_blank">' + response.ip + ':' + container.port + '</a>' + comment + '<br/>'
             });
             panel_html += '</p>'
             panel_html += '<button type="button" class="btn btn-danger card-link" id="owl-button-destroy" onclick="CTFd._internal.challenge.destroy()">Destroy</button>' +

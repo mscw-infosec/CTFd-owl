@@ -139,7 +139,9 @@ def load(app):
                     containers_data.append({
                         "port": container.port,
                         "remaining_time": timeout - (datetime.datetime.utcnow() - container.start_time).seconds,
-                        "lan_domain": lan_domain
+                        "lan_domain": lan_domain,
+                        "conntype": container.conntype,
+                        "comment": container.comment,
                     })
                 return jsonify({'success': True, 'type': 'redirect', 'ip': configs.get('frp_direct_ip_address', ""),
                                 'containers_data': containers_data})

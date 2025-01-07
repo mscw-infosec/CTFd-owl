@@ -10,6 +10,14 @@ Added english documentaion & some new features.
 3. Unlike in BIT-NSC's version, dynamic flags have no support.
 4. Multiple containers + ports per challenge.
 5. FLAG variable exported from CTFd to environment when running `docker compose up` on challenge.
+6. Everything about container (including frp) should be configured using labels in docker-compose.
+
+### Labels
+Proxied containers should have at least first two of these labels:
+- `owl.proxy=true` - tells CTFd-Owl that container should be proxied
+- `owl.proxy.port=5656` - container port that will be connected to FRP (ex. 5656)
+- `owl.label.conntype=nc` - will be shown as `(nc)` before container's `ip:port` in challenge card.
+- `owl.label.comment=My comment.` - will be shown as `(My comment.)` next line after container's `ip:port` in challenge card.
 
 ## Installation
 

@@ -1,6 +1,6 @@
 version: "3"
 services:
-    service_proxied:
+    service:
         image: nginx:latest
         volumes:
             - ./nginx:/etc/nginx/conf.d
@@ -12,6 +12,11 @@ services:
             - 80
         networks:
             - net
+        labels:
+            - owl.proxy=true
+            - owl.proxy.port=80
+            - owl.label.conntype=http
+            - owl.label.comment=This is the main service.
     
     php:
         image: xiabee/php7.3-fpm
