@@ -82,13 +82,25 @@ function loadInfo () {
             response.containers_data.forEach((container, i) => {
                 let comment = "";
                 let conntype = "";
+                let proto = "";
                 if (container.comment !== "") {
                     comment = '<br/><a>(' + container.comment + ')</a>';
                 }
                 if (container.conntype !== "") {
                     conntype = '(' + container.conntype + ') ';
                 }
-                panel_html += (i + 1) + '. ' + conntype + '<a href="//' + response.ip + ':' + container.port + '" target="_blank">' + response.ip + ':' + container.port + '</a>' + comment + '<br/>'
+                if (container.conntype === "http") {
+                    proto = "http:";
+                }
+                if (container.conntype === "https") {
+                    proto = "https:";
+                }
+                if (container.conntype === "nc") {
+                    panel_html += (i + 1) + '. ' + conntype + '<a target="_blank" whited>nc ' + response.ip + ' ' + container.port + '</a>' + comment + '<br/>'
+                }
+                else {
+                     panel_html += (i + 1) + '. ' + conntype + '<a href="' + proto + '//' + response.ip + ':' + container.port + '" target="_blank">' + response.ip + ':' + container.port + '</a>' + comment + '<br/>'
+                }
             });
             panel_html += '</p>'
             panel_html += '<button type="button" class="btn btn-danger card-link" id="owl-button-destroy" onclick="CTFd._internal.challenge.destroy()">Destroy</button>' +
