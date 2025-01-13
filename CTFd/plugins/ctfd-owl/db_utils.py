@@ -37,7 +37,7 @@ class DBUtils:
     def new_container(user_id, challenge_id, flag, docker_id, port=0, ip="", name="", conntype="", comment="",
                       contport=0):
         container = OwlContainers(user_id=user_id, challenge_id=challenge_id, flag=flag, docker_id=docker_id, port=port,
-                                  ip=ip, name=name, conntype=conntype, comment=comment, contport=contport)
+                                  ip=ip, name=name, conntype=conntype, comment=comment, contport=contport, start_time=datetime.datetime.now(datetime.timezone.utc))
         db.session.add(container)
         db.session.commit()
         db.session.close()
