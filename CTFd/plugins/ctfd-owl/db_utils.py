@@ -90,8 +90,8 @@ class DBUtils:
         for r in records:
             r.start_time = r.start_time + datetime.timedelta(seconds=timeout)
 
-            if r.start_time > datetime.datetime.utcnow():
-                r.start_time = datetime.datetime.utcnow()
+            if r.start_time > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None):
+                r.start_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
 
             r.renew_count += 1
         db.session.commit()
@@ -103,7 +103,7 @@ class DBUtils:
         timeout = int(configs.get("docker_timeout", "3600"))
 
         q = db.session.query(OwlContainers)
-        q = q.filter(OwlContainers.start_time < datetime.datetime.utcnow() - datetime.timedelta(seconds=timeout))
+        q = q.filter(OwlContainers.start_time < datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(seconds=timeout))
         return q.all()
 
     @staticmethod
@@ -112,7 +112,7 @@ class DBUtils:
         timeout = int(configs.get("docker_timeout", "3600"))
 
         q = db.session.query(OwlContainers)
-        q = q.filter(OwlContainers.start_time >= datetime.datetime.utcnow() - datetime.timedelta(seconds=timeout))
+        q = q.filter(OwlContainers.start_time >= datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(seconds=timeout))
         return q.all()
 
     @staticmethod
@@ -126,7 +126,7 @@ class DBUtils:
         timeout = int(configs.get("docker_timeout", "3600"))
 
         q = db.session.query(OwlContainers)
-        q = q.filter(OwlContainers.start_time >= datetime.datetime.utcnow() - datetime.timedelta(seconds=timeout))
+        q = q.filter(OwlContainers.start_time >= datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(seconds=timeout))
         q = q.slice(page_start, page_end)
         return q.all()
 
@@ -136,5 +136,5 @@ class DBUtils:
         timeout = int(configs.get("docker_timeout", "3600"))
 
         q = db.session.query(OwlContainers)
-        q = q.filter(OwlContainers.start_time >= datetime.datetime.utcnow() - datetime.timedelta(seconds=timeout))
+        q = q.filter(OwlContainers.start_time >= datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(seconds=timeout))
         return q.count()

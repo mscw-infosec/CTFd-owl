@@ -46,7 +46,7 @@ class OwlContainers(db.Model):
     docker_id = db.Column(db.String(32))
     ip = db.Column(db.String(32))
     port = db.Column(db.Integer)
-    start_time = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow())
+    start_time = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     renew_count = db.Column(db.Integer, nullable=False, default=0)
     flag = db.Column(db.String(128), nullable=False)
 

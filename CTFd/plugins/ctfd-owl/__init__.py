@@ -139,7 +139,7 @@ def load(app):
                     lan_domain = str(user_id) + "-" + container.docker_id
                     containers_data.append({
                         "port": container.port,
-                        "remaining_time": timeout - (datetime.datetime.utcnow() - container.start_time).seconds,
+                        "remaining_time": timeout - (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - container.start_time).seconds,
                         "lan_domain": lan_domain,
                         "conntype": container.conntype,
                         "comment": container.comment,
