@@ -1,0 +1,13 @@
+serverAddr = "frps"
+serverPort = 80
+
+auth.method = "token" 
+auth.token = "random_this"
+
+webServer.addr = "10.1.0.4"
+webServer.port = 7400
+webServer.user = "admin"
+webServer.password = "admin"
+
+transport.tcpMux = false
+transport.poolCount = 1

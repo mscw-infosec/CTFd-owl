@@ -1,23 +1,24 @@
 from __future__ import division  # Use floating point for math calculations
 
-from flask_sqlalchemy import SQLAlchemy
+import datetime
+import fcntl
+import logging
+import os
+import sys
 
-from CTFd.plugins import register_plugin_assets_directory
-from CTFd import utils
-from flask import render_template, request, jsonify, Blueprint, current_app, session
-from CTFd.utils.decorators import admins_only, authed_only
-from .models import DynamicCheckChallenge, OwlContainers
-from .challenge_type import DynamicCheckValueChallenge
-from CTFd.plugins.challenges import CHALLENGE_CLASSES
-from .db_utils import DBUtils
-from .control_utils import ControlUtil
-from .frp_utils import FrpUtils
-import datetime, fcntl
+from flask import render_template, request, jsonify, Blueprint
 from flask_apscheduler import APScheduler
-import logging, os, sys
+
+from CTFd import utils
+from CTFd.plugins import register_plugin_assets_directory
+from CTFd.plugins.challenges import CHALLENGE_CLASSES
+from CTFd.utils.decorators import admins_only, authed_only
+from .challenge_type import DynamicCheckValueChallenge
+from .control_utils import ControlUtil
+from .db_utils import DBUtils
 from .extensions import get_mode
-from CTFd.plugins.migrations import upgrade
-from .extensions import log
+from .frp_utils import FrpUtils
+from .models import DynamicCheckChallenge, OwlContainers
 
 
 def load(app):
@@ -178,7 +179,8 @@ def load(app):
                     .filter(DynamicCheckChallenge.id == challenge_id) \
                     .first_or_404()
                 try:
-                    result = ControlUtil.new_container(user_id=user_id, challenge_id=challenge_id, prefix=configs.get("docker_flag_prefix"))
+                    result = ControlUtil.new_container(user_id=user_id, challenge_id=challenge_id,
+                                                       prefix=configs.get("docker_flag_prefix"))
                     if isinstance(result, bool):
                         return jsonify({'success': True})
                     else:

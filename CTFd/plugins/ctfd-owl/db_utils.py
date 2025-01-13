@@ -1,11 +1,9 @@
 import datetime
-import uuid
-
-from .models import OwlConfigs, OwlContainers
 
 from CTFd.models import (
     db
 )
+from .models import OwlConfigs, OwlContainers
 
 
 class DBUtils:
@@ -36,9 +34,10 @@ class DBUtils:
         db.session.close()
 
     @staticmethod
-    def new_container(user_id, challenge_id, flag, docker_id, port=0, ip="", name="", conntype="", comment="", contport=0):
+    def new_container(user_id, challenge_id, flag, docker_id, port=0, ip="", name="", conntype="", comment="",
+                      contport=0):
         container = OwlContainers(user_id=user_id, challenge_id=challenge_id, flag=flag, docker_id=docker_id, port=port,
-                                  ip=ip, name=name, conntype=conntype, comment=comment, contport=0)
+                                  ip=ip, name=name, conntype=conntype, comment=comment, contport=contport)
         db.session.add(container)
         db.session.commit()
         db.session.close()

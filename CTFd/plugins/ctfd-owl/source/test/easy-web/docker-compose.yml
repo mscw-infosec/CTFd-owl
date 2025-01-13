@@ -6,12 +6,11 @@ services:
             - ./nginx:/etc/nginx/conf.d
             - ./www:/var/www/html
         restart: always
-        environment: 
-            TZ: Asia/Shanghai
         expose:
             - 80
         networks:
             - net
+            - CTFD_PRIVATE_NETWORK
         labels:
             - owl.proxy=true
             - owl.proxy.port=80
@@ -26,13 +25,12 @@ services:
             - ./php/php-fpm.conf:/usr/local/etc/php-fpm.d/www.conf
             - ./www:/var/www/html
             - "$PWD/flag:/var/www/html/fl0g:ro"
-        environment:
-            TZ: Asia/Shanghai
         restart: always
         networks:
-            - net
+            - CTFD_PRIVATE_NETWORK
 
 networks:
+    CTFD_PRIVATE_NETWORK:
     net:
-      external: 
-         name: bitnsc_frp_containers
+        external:
+            name: bitnsc_frp_containers

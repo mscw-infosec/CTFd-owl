@@ -1,5 +1,5 @@
 #--- Release ---
-FROM spaceskynet/bitnsc-ctfd:latest
+FROM justmarfix/ctfd:latest
 
 ARG WORKDIR
 ENV WORKDIR_IN ${WORKDIR}

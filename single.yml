@@ -6,7 +6,7 @@ services:
       context: .
       args:
         - WORKDIR=/opt/CTFd
-    image: bitnsc-ctfd-main
+    image: ctfd-main
     user: root
     restart: always
     ports:
@@ -14,19 +14,19 @@ services:
     environment:
       - SECRET_KEY=random_this
       - UPLOAD_FOLDER=/var/uploads
-      - DATABASE_URL=mysql+pymysql://ctfd:ctfd@db/ctfd # 格式：mysql+pymysql://<MYSQL_USER>:<MYSQL_PASSWORD>@db/<MYSQL_DATABASE>
+      - DATABASE_URL=mysql+pymysql://ctfd:ctfd@db/ctfd # ex：mysql+pymysql://<MYSQL_USER>:<MYSQL_PASSWORD>@db/<MYSQL_DATABASE>
       - REDIS_URL=redis://cache:6379/0
       - WORKERS=4
       - LOG_FOLDER=/var/log/CTFd
       - ACCESS_LOG=/var/log/CTFd/access.log
       - ERROR_LOG=/var/log/CTFd/error.log
-      - PROBLEM_DOCKER_RUN_FOLDER=/home/docker # 题目容器运行的文件夹，保证与下方 volumes 中的一致 
+      - PROBLEM_DOCKER_RUN_FOLDER=/home/docker # directory for users' challenge folders
     volumes:
       - .data/CTFd/logs:/var/log/CTFd
       - .data/CTFd/uploads:/var/uploads
       - .:/opt/CTFd
-      - /home/docker:/home/docker # 宿主机和容器的映射目录和 PROBLEM_DOCKER_RUN_FOLDER 一致，保证题目创建时不会出现找不到题目容器的映射目录等情况
-      - /var/run/docker.sock:/var/run/docker.sock # 保证通过容器的 docker.sock 能操作宿主机的 docker.sock
+      - /home/docker:/home/docker # directory for users' challenge folders
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - db
       - frpc
@@ -60,9 +60,7 @@ services:
        internal:
 
   frps:
-    image: spaceskynet/bitnsc-frp
-    # you can build image by yourself if you want.
-    #build: ./frp
+    build: ./frp
     restart: always
     volumes:
       - ./frp/conf:/conf/
@@ -73,16 +71,14 @@ services:
     entrypoint:
       - /app/frps
       - -c
-      - /conf/frps.ini
+      - /conf/frps.toml
     networks:
       default:
       frp:
         ipv4_address: 10.1.0.3
 
   frpc:
-    image: spaceskynet/bitnsc-frp
-    # you can build image by yourself if you want.
-    #build: ./frp
+    build: ./frp
     restart: always
     volumes:
       - ./frp/conf:/conf/
@@ -91,7 +87,7 @@ services:
     entrypoint:
       - /app/frpc
       - -c
-      - /conf/frpc.ini
+      - /conf/frpc.toml
     networks:
       frp:
         ipv4_address: 10.1.0.4

@@ -1,0 +1,7 @@
+bindPort = 80
+auth.method = "token" 
+auth.token = "random_this"
+vhostHTTPPort = 80
+vhostHTTPSPort = 443
+transport.tcpMux = false
+transport.maxPoolCount = 1

@@ -1,8 +1,7 @@
-from CTFd.plugins.challenges import BaseChallenge
-from CTFd.plugins.flags import get_flag_class, FlagException
-from CTFd.utils.user import get_ip
-from flask import Blueprint, current_app
-from CTFd.utils.modes import get_model
+import math
+
+from flask import Blueprint, current_app, Request
+
 from CTFd.models import (
     db,
     Solves,
@@ -15,10 +14,13 @@ from CTFd.models import (
     Users,
     Notifications,
 )
-import math
+from CTFd.plugins.challenges import BaseChallenge
+from CTFd.plugins.flags import get_flag_class, FlagException
+from CTFd.utils.modes import get_model
 from CTFd.utils.uploads import delete_file
-from .models import DynamicCheckChallenge, OwlContainers
+from CTFd.utils.user import get_ip
 from .extensions import get_mode
+from .models import DynamicCheckChallenge, OwlContainers
 
 
 class DynamicCheckValueChallenge(BaseChallenge):
@@ -44,7 +46,7 @@ class DynamicCheckValueChallenge(BaseChallenge):
         :param challenge:
         :return: Challenge object, data dictionary to be returned to the user
         """
-        challenge = DynamicCheckChallenge.query.filter_by(id=challenge.id).first()
+        challenge: DynamicCheckChallenge = DynamicCheckChallenge.query.filter_by(id=challenge.id).first()
         data = {
             "id": challenge.id,
             "name": challenge.name,
@@ -67,7 +69,7 @@ class DynamicCheckValueChallenge(BaseChallenge):
         return data
 
     @classmethod
-    def update(cls, challenge, request):
+    def update(cls, challenge: challenge_model, request: Request):
         """
         This method is used to update the information associated with a challenge. This should be kept strictly to the
         Challenges table and any child tables.
@@ -85,14 +87,14 @@ class DynamicCheckValueChallenge(BaseChallenge):
                 value = float(value)
             setattr(challenge, attr, value)
 
-        Model = get_model()
+        model = get_model()
 
         solve_count = (
-            Solves.query.join(Model, Solves.account_id == Model.id)
+            Solves.query.join(model, Solves.account_id == model.id)
             .filter(
                 Solves.challenge_id == challenge.id,
-                Model.hidden == False,
-                Model.banned == False,
+                model.hidden is False,
+                model.banned is False,
             )
             .count()
         )
@@ -153,7 +155,7 @@ class DynamicCheckValueChallenge(BaseChallenge):
         user_id = get_mode()
 
         if chal.flag_type == 'static':
-            flags = Flags.query.filter_by(challenge_id=challenge.id).all()
+            flags: list[Flags] = Flags.query.filter_by(challenge_id=challenge.id).all()
             for flag in flags:
                 try:
                     if get_flag_class(flag.type).compare(flag, submission):
@@ -162,21 +164,21 @@ class DynamicCheckValueChallenge(BaseChallenge):
                     return False, str(e)
             return False, "Incorrect"
 
-        flag = OwlContainers.query.filter_by(user_id=user_id, challenge_id=challenge.id).first()
+        container = OwlContainers.query.filter_by(user_id=user_id, challenge_id=challenge.id).first()
         subflag = OwlContainers.query.filter_by(flag=submission).first()
 
         if subflag:
             try:
-                fflag = flag.flag
+                fflag = container.flag
             except Exception as e:
                 fflag = ""
-            if (fflag == submission):
+            if fflag == submission:
                 return True, "Correct"
             else:
                 flaguser = Users.query.filter_by(id=user_id).first()
                 subuser = Users.query.filter_by(id=subflag.user_id).first()
 
-                if (flaguser.name == subuser.name):
+                if flaguser.name == subuser.name:
                     return False, "Incorrect Challenge"
                 else:
                     if flaguser.type == "admin":
@@ -188,7 +190,7 @@ class DynamicCheckValueChallenge(BaseChallenge):
                     messages = {"title": "Cheat Found", "content": message, "type": "background", "sound": True}
                     current_app.events_manager.publish(data=messages, type="notification")
                     return False, "Cheated"
-        elif flag:
+        elif container:
             return False, "Incorrect"
         else:
             return False, "Please solve it during the container is running"
@@ -209,6 +211,7 @@ class DynamicCheckValueChallenge(BaseChallenge):
 
         Model = get_model()
 
+        # noinspection PyArgumentList
         solve = Solves(
             user_id=user.id,
             team_id=team.id if team else None,
@@ -222,8 +225,8 @@ class DynamicCheckValueChallenge(BaseChallenge):
             Solves.query.join(Model, Solves.account_id == Model.id)
             .filter(
                 Solves.challenge_id == challenge.id,
-                Model.hidden == False,
-                Model.banned == False,
+                Model.hidden is False,
+                Model.banned is False,
             )
             .count()
         )

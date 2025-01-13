@@ -1,13 +1,16 @@
-import os, uuid, subprocess, logging, time, subprocess, random
+import os
+import random
+import subprocess
+import uuid
+from string import digits, ascii_lowercase
 from typing import Union
 
-from .db_utils import DBUtils
-from .models import DynamicCheckChallenge, OwlContainers
-from .extensions import log
+import yaml
 
 from CTFd.models import Flags
-
-import yaml
+from .db_utils import DBUtils
+from .extensions import log
+from .models import DynamicCheckChallenge, OwlContainers
 
 
 class DockerUtils:
@@ -15,10 +18,9 @@ class DockerUtils:
     def gen_flag():
         configs = DBUtils.get_all_configs()
         prefix = configs.get("docker_flag_prefix")
-        flag = "{" + str(uuid.uuid4()) + "}"
-        flag = prefix + flag  # .replace("-","")
-        while OwlContainers.query.filter_by(flag=flag).first() != None:
-            flag = prefix + "{" + str(uuid.uuid4()) + "}"
+        flag = prefix + "{" + ''.join([random.choice(digits + ascii_lowercase) for _ in range(32)]) + "}"
+        while OwlContainers.query.filter_by(flag=flag).first() is not None:
+            flag = prefix + "{" + ''.join([random.choice(digits + ascii_lowercase) for _ in range(32)]) + "}"
         return flag
 
     @staticmethod
@@ -32,8 +34,13 @@ class DockerUtils:
         try:
             configs = DBUtils.get_all_configs()
             basedir = os.path.dirname(__file__)
-            challenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
-            flag: str = Flags.query.filter_by(challenge_id=challenge_id).first_or_404().content
+            challenge: DynamicCheckChallenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
+
+            if challenge.flag_type == 'static':
+                flag: str = Flags.query.filter_by(challenge_id=challenge_id).first_or_404().content
+            else:
+                flag: str = DockerUtils.gen_flag()
+
             socket = DockerUtils.get_socket()
             sname = os.path.join(basedir, "source/" + challenge.dirname)
             dirname = challenge.dirname.split("/")[1]
@@ -89,7 +96,8 @@ class DockerUtils:
             process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # up docker-compose
-            command = "export FLAG={} && cd ".format(flag) + dname + " && docker-compose -H={} -f run.yml up -d".format(
+            command = "export FLAG={} && cd ".format(
+                flag) + dname + " && sed -i \'s/CTFD_PRIVATE_NETWORK/" + name + "/\' run.yml " + "&& docker-compose -H={} -f run.yml up -d".format(
                 socket)
             process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             log(

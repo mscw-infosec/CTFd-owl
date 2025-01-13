@@ -1,4 +1,4 @@
 {
-    "name": "CTFd Owl",
-    "route": "/plugins/ctfd-owl/admin/settings"
+  "name": "CTFd Owl",
+  "route": "/plugins/ctfd-owl/admin/settings"
 }

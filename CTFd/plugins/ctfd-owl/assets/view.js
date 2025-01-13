@@ -2,7 +2,8 @@ CTFd._internal.challenge.data = undefined
 
 CTFd._internal.challenge.renderer = CTFd.lib.markdown();
 
-CTFd._internal.challenge.preRender = function () { }
+CTFd._internal.challenge.preRender = function () {
+}
 
 CTFd._internal.challenge.render = function (markdown) {
     return CTFd._internal.challenge.renderer.render(markdown);
@@ -38,7 +39,7 @@ CTFd._internal.challenge.submit = function (preview) {
     });
 };
 
-function loadInfo () {
+function loadInfo() {
     var challenge_id = parseInt(CTFd.lib.$('#challenge-id').val());
     var target = "/plugins/ctfd-owl/container?challenge_id={challenge_id}";
     target = target.replace("{challenge_id}", challenge_id);
@@ -66,18 +67,17 @@ function loadInfo () {
         console.log(response);
         if (response.success === false) {
             CTFd.lib.$('#owl-panel').html(
-                    '<h5 class="card-title">Error</h5>' +
-                    '<h6 class="card-subtitle mb-2 text-muted" id="owl-challenge-count-down">' + response.msg + '</h6>'
+                '<h5 class="card-title">Error</h5>' +
+                '<h6 class="card-subtitle mb-2 text-muted" id="owl-challenge-count-down">' + response.msg + '</h6>'
             );
-        }
-        else if(response.containers_data === undefined || response.containers_data[0].remaining_time === undefined) {
+        } else if (response.containers_data === undefined || response.containers_data[0].remaining_time === undefined) {
             CTFd.lib.$('#owl-panel').html(
-                    '<h5 class="card-title">Instance Info</h5><hr>' +
-                    '<button type="button" class="btn btn-primary card-link" id="owl-button-boot" onclick="CTFd._internal.challenge.boot()">Launch</button>'
+                '<h5 class="card-title">Instance Info</h5><hr>' +
+                '<button type="button" class="btn btn-primary card-link" id="owl-button-boot" onclick="CTFd._internal.challenge.boot()">Launch</button>'
             );
         } else {
             var panel_html = '<h5 class="card-title">Instance Info</h5><hr>' +
-                    '<h6 class="card-subtitle mb-2 text-muted" id="owl-challenge-count-down">Remaining Time: ' + response.containers_data[0].remaining_time + 's</h6>';
+                '<h6 class="card-subtitle mb-2 text-muted" id="owl-challenge-count-down">Remaining Time: ' + response.containers_data[0].remaining_time + 's</h6>';
             panel_html += '<p class="card-text">Services: <br/>'
             response.containers_data.forEach((container, i) => {
                 let comment = "";
@@ -97,37 +97,37 @@ function loadInfo () {
                 }
                 if (container.conntype === "nc") {
                     panel_html += (i + 1) + '. ' + conntype + '<a target="_blank" whited>nc ' + response.ip + ' ' + container.port + '</a>' + comment + '<br/>'
-                }
-                else {
-                     panel_html += (i + 1) + '. ' + conntype + '<a href="' + proto + '//' + response.ip + ':' + container.port + '" target="_blank">' + response.ip + ':' + container.port + '</a>' + comment + '<br/>'
+                } else {
+                    panel_html += (i + 1) + '. ' + conntype + '<a href="' + proto + '//' + response.ip + ':' + container.port + '" target="_blank">' + response.ip + ':' + container.port + '</a>' + comment + '<br/>'
                 }
             });
             panel_html += '</p>'
             panel_html += '<button type="button" class="btn btn-danger card-link" id="owl-button-destroy" onclick="CTFd._internal.challenge.destroy()">Destroy</button>' +
-                          '<button type="button" class="btn btn-success card-link" id="owl-button-renew" onclick="CTFd._internal.challenge.renew()">Renew</button>';
+                '<button type="button" class="btn btn-success card-link" id="owl-button-renew" onclick="CTFd._internal.challenge.renew()">Renew</button>';
             CTFd.lib.$('#owl-panel').html(panel_html);
-            
-            if(window.t !== undefined) {
+
+            if (window.t !== undefined) {
                 clearInterval(window.t);
                 window.t = undefined;
             }
 
-            function showAuto(){
+            function showAuto() {
                 const origin = CTFd.lib.$('#owl-challenge-count-down')[0].innerHTML;
                 const second = parseInt(origin.split(": ")[1].split('s')[0]) - 1;
                 CTFd.lib.$('#owl-challenge-count-down')[0].innerHTML = 'Remaining Time: ' + second + 's';
-                if(second < 0) {
+                if (second < 0) {
                     loadInfo();
                 }
             }
+
             window.t = setInterval(showAuto, 1000);
         }
     });
 };
 
-function stopShowAuto () {
+function stopShowAuto() {
     // 窗口关闭时停止循环
-    CTFd.lib.$("#challenge-window").on("hide.bs.modal", function(event) {
+    CTFd.lib.$("#challenge-window").on("hide.bs.modal", function (event) {
         clearInterval(window.t);
         window.t = undefined;
     });
@@ -142,7 +142,7 @@ CTFd._internal.challenge.destroy = function () {
 
     CTFd.lib.$('#owl-button-destroy')[0].innerHTML = "Waiting...";
     CTFd.lib.$('#owl-button-destroy')[0].disabled = true;
-    
+
     CTFd.fetch(target, {
         method: 'DELETE',
         credentials: 'same-origin',
@@ -162,7 +162,7 @@ CTFd._internal.challenge.destroy = function () {
         }
         return response.json();
     }).then(function (response) {
-        if(response.success) {
+        if (response.success) {
             loadInfo();
             CTFd.ui.ezq.ezAlert({
                 title: "Success",
@@ -211,7 +211,7 @@ CTFd._internal.challenge.renew = function () {
         }
         return response.json();
     }).then(function (response) {
-        if(response.success) {
+        if (response.success) {
             loadInfo();
             CTFd.ui.ezq.ezAlert({
                 title: "Success",
@@ -259,7 +259,7 @@ CTFd._internal.challenge.boot = function () {
         }
         return response.json();
     }).then(function (response) {
-        if(response.success) {
+        if (response.success) {
             loadInfo();
             CTFd.ui.ezq.ezAlert({
                 title: "Success",
@@ -277,3 +277,4 @@ CTFd._internal.challenge.boot = function () {
         }
     });
 };
+

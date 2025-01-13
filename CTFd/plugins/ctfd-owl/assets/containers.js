@@ -33,12 +33,12 @@ $(".click-copy").click(function (e) {
 
 async function delete_container(user_id) {
     let response = await CTFd.fetch("/plugins/ctfd-owl/admin/containers?user_id=" + user_id, {
-		method: "DELETE",
-		credentials: "same-origin",
-		headers: {
-			"Accept": "application/json",
-			"Content-Type": "application/json"
-		}
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        }
     });
     response = await response.json();
     return response;
@@ -46,18 +46,18 @@ async function delete_container(user_id) {
 
 async function renew_container(user_id) {
     let response = await CTFd.fetch("/plugins/ctfd-owl/admin/containers?user_id=" + user_id, {
-		method: "PATCH",
-		credentials: "same-origin",
-		headers: {
-			"Accept": "application/json",
-			"Content-Type": "application/json"
-		}
-	});
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        }
+    });
     response = await response.json();
     return response;
 }
 
-$(".delete-container").click(function(e) {
+$(".delete-container").click(function (e) {
     e.preventDefault();
     var container_id = $(this).attr("container-id");
     var user_id = $(this).attr("user-id");
@@ -72,18 +72,18 @@ $(".delete-container").click(function(e) {
         success: async function () {
             let response = await delete_container(user_id);
             if (!response.success) {
-				CTFd.ui.ezq.ezAlert({
-					title: "Error",
-					body: "Unknown Error!",
-					button: "OK"
-				});
-			}
+                CTFd.ui.ezq.ezAlert({
+                    title: "Error",
+                    body: "Unknown Error!",
+                    button: "OK"
+                });
+            }
             location.reload();
         }
     });
 });
 
-$(".renew-container").click(function(e) {
+$(".renew-container").click(function (e) {
     e.preventDefault();
     var container_id = $(this).attr("container-id");
     var user_id = $(this).attr("user-id");
@@ -98,12 +98,12 @@ $(".renew-container").click(function(e) {
         success: async function () {
             let response = await renew_container(user_id);
             if (!response.success) {
-				CTFd.ui.ezq.ezAlert({
-					title: "Error",
-					body: "Unknown Error!",
-					button: "OK"
-				});
-			}
+                CTFd.ui.ezq.ezAlert({
+                    title: "Error",
+                    body: "Unknown Error!",
+                    button: "OK"
+                });
+            }
             location.reload();
         },
     });
