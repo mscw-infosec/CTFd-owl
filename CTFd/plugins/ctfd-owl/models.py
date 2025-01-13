@@ -21,7 +21,7 @@ class DynamicCheckChallenge(Challenges):
     decay = db.Column(db.Integer, default=0)
 
     # frp settings
-    redirect_type = db.Column(db.Text, default="direct")
+    redirect_type = db.Column(db.Text, default="DIRECT")
     redirect_port = db.Column(db.Integer, default=80)
 
     def __init__(self, *args, **kwargs):
