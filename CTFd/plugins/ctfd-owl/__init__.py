@@ -161,10 +161,10 @@ def load(app):
             if ControlUtil.frequency_limit():
                 return jsonify({'success': False, 'msg': 'Frequency limit, You should wait at least 1 min.'})
             # check whether exist container before
-            existContainer = ControlUtil.get_container(user_id)
-            if existContainer:
+            existContainers = ControlUtil.get_container(user_id)
+            if existContainers:
                 return jsonify(
-                    {'success': False, 'msg': 'You have boot {} before.'.format(existContainer.challenge.name)})
+                    {'success': False, 'msg': 'You have boot {} before.'.format(existContainers[0].challenge.name)})
             else:
                 challenge_id = request.args.get('challenge_id')
                 ControlUtil.check_challenge(challenge_id, user_id)
