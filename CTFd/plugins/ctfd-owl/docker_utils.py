@@ -122,7 +122,7 @@ class DockerUtils:
             basedir = os.path.dirname(__file__)
             socket = DockerUtils.get_socket()
             challenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
-            dirname = challenge.dirname.split("/")[1]
+            dirname = challenge.dirname.split("/")[-1]
             prefix = configs.get("docker_flag_prefix")
             name = "{}_user{}_{}".format(prefix, user_id, dirname).lower()
             problem_docker_run_dir = os.environ['PROBLEM_DOCKER_RUN_FOLDER']
