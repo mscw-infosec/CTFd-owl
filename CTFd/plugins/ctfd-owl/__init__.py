@@ -86,6 +86,13 @@ def load(app):
         DBUtils.save_all_configs(req.items())
         return jsonify({'success': True})
 
+    @owl_blueprint.route('/admin/containers/count', methods=['GET'])
+    @admins_only
+    def admin_list_containers_json():
+        count = DBUtils.get_all_alive_container_count()
+
+        return {"count": count}
+
     @owl_blueprint.route("/admin/containers", methods=['GET'])
     @admins_only
     # list alive containers
