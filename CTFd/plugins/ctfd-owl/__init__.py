@@ -89,9 +89,9 @@ def load(app):
     @owl_blueprint.route('/admin/containers/count', methods=['GET'])
     @admins_only
     def admin_list_containers_json():
-        count = DBUtils.get_all_alive_container_count()
-
-        return {"count": count}
+        alive_count = DBUtils.get_all_alive_container_count()
+        count = DBUtils.get_all_container_count()
+        return {"alive_count": alive_count, "count": count}
 
     @owl_blueprint.route("/admin/containers", methods=['GET'])
     @admins_only

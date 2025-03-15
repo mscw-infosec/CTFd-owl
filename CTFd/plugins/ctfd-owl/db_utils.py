@@ -121,6 +121,11 @@ class DBUtils:
         return q.all()
 
     @staticmethod
+    def get_all_container_count():
+        q = db.session.query(OwlContainers)
+        return q.count()
+
+    @staticmethod
     def get_all_alive_container_page(page_start, page_end):
         configs = DBUtils.get_all_configs()
         timeout = int(configs.get("docker_timeout", "3600"))
