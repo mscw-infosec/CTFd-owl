@@ -136,7 +136,7 @@ class DockerUtils:
             return str(e)
 
         try:
-            command = "cd {} && docker-compose -H={} -f run.yml down".format(dname, socket)
+            command = "cd {} && docker-compose -H={} -f run.yml kill && docker-compose -H={} -f run.yml down".format(dname, socket, socket)
             process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             command = "rm -rf {}".format(dname)
