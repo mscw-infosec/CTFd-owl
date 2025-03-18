@@ -1,14 +1,15 @@
 # CTFd-owl
 
+Russian version of this README is available [here](./README-RU.md). 
+
 Forked from [CTFd-Owl](https://github.com/BIT-NSC/ctfd-owl.git) by BIT-NSC.
-Added english documentaion & some new features.
 
 ## Features
 
-1. The port is randomized on each container startup.
-2. Adapted to "teams" and "users" modes. In "teams" mode, users of the same team will use the same container. # this is not tested or supported properly, open for PRs
-3. Both static (plaintext or regex) and dynamic flags are supported.
-4. Multiple containers + ports per challenge.
+1. Multiple dynamic containers & ports per challenge.
+2. The port is randomized on each container startup.
+3. Adapted to "teams" and "users" modes. In "teams" mode, users of the same team will use the same container. # this is not tested or supported properly, open for PRs
+4. Both static (plaintext or regex) and dynamic flags are supported.
 5. FLAG variable exported from CTFd to environment when running `docker compose up` on challenge.
 6. Everything about container (including frp) should be configured using labels in docker-compose.
 
@@ -60,7 +61,7 @@ pip3 install docker-compose
 The above command will try to install `docker-ce`, `python3-pip` and `docker-compose`. Before executing them, make sure
 the following requirements are met:
 
-* You have `curl`、`git`、`python3` and `pip` installed
+* You have `curl`, `git`, `python3` and `pip` installed
 * GitHub is accessible
 * Docker Registry is accessible
 
@@ -84,7 +85,7 @@ You're all set! The next step is configuration.
 |           Options            |                                                 Content                                                  |
 |:----------------------------:|:--------------------------------------------------------------------------------------------------------:|
 |    **Docker Flag Prefix**    |                                               Flag prefix                                                |
-|     **Docker APIs URL**      |                            API url/path (default `unix://var/run/docker.sock)                            |
+|     **Docker APIs URL**      |                            API url/path (default `unix://var/run/docker.sock`)                            |
 |   **Max Container Count**    |                           Maximum number of containers (unlimited by default)                            |
 | **Docker Container Timeout** | The maximum running time of the container (it will be automatically destroyed after the time is reached) |
 |     **Max Renewal Time**     |                Maximum container renewal times (cannot be renewed if the number exceeds）                 |
