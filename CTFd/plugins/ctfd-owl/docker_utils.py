@@ -89,15 +89,15 @@ class DockerUtils:
             return e
 
         try:
-            command = "cp -r {} {}".format(sname, dname)
+            command = "cp -r '{}' '{}'".format(sname, dname)
             process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            command = "cd {} && cp docker-compose.yml run.yml".format(dname)
+            command = "cd '{}' && cp docker-compose.yml run.yml".format(dname)
             process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # up docker-compose
-            command = "export FLAG={} && cd ".format(
-                flag) + dname + " && sed -i \'s/CTFD_PRIVATE_NETWORK/" + name + "/\' run.yml " + "&& docker-compose -H={} -f run.yml up -d".format(
+            command = "export FLAG='{}' && cd ".format(
+                flag) + dname + " && sed -i \'s/CTFD_PRIVATE_NETWORK/" + name + "/\' run.yml " + "&& export DOCKER_HOST='{}' && docker compose -f run.yml up -d".format(
                 socket)
             process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             log(
@@ -136,7 +136,7 @@ class DockerUtils:
             return str(e)
 
         try:
-            command = "cd {} && docker-compose -H={} -f run.yml kill && docker-compose -H={} -f run.yml down".format(dname, socket, socket)
+            command = "cd {} && export DOCKER_HOST='{}' && docker compose -f run.yml kill && docker compose -f run.yml down".format(dname, socket)
             process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             command = "rm -rf {}".format(dname)

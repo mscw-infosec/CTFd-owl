@@ -1,13 +1,11 @@
 CTFd._internal.challenge.data = undefined
 
-CTFd._internal.challenge.renderer = CTFd.lib.markdown();
+CTFd._internal.challenge.renderer = null;
 
 CTFd._internal.challenge.preRender = function () {
 }
 
-CTFd._internal.challenge.render = function (markdown) {
-    return CTFd._internal.challenge.renderer.render(markdown);
-}
+CTFd._internal.challenge.render = null;
 
 CTFd._internal.challenge.postRender = function () {
     loadInfo();
@@ -40,7 +38,13 @@ CTFd._internal.challenge.submit = function (preview) {
 };
 
 function loadInfo() {
-    var challenge_id = parseInt(CTFd.lib.$('#challenge-id').val());
+    var challenge_id = parseInt(CTFd.lib.$("#challenge-id").val());
+    if (isNaN(challenge_id)) {
+        setTimeout(function () {
+            loadInfo();
+        }, 100);
+        return;
+    }
     var target = "/plugins/ctfd-owl/container?challenge_id={challenge_id}";
     target = target.replace("{challenge_id}", challenge_id);
 

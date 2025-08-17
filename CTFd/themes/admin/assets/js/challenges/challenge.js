@@ -1,7 +1,9 @@
 import $ from "jquery";
-import { ezToast, ezQuery } from "core/ezq";
-import { htmlEntities } from "core/utils";
-import CTFd from "core/CTFd";
+import "../compat/json";
+import "../compat/format";
+import { ezToast, ezQuery } from "../compat/ezq";
+import { htmlEntities } from "@ctfdio/ctfd-js/utils/html";
+import CTFd from "../compat/CTFd";
 import nunjucks from "nunjucks";
 
 function renderSubmissionResponse(response, cb) {
@@ -9,7 +11,7 @@ function renderSubmissionResponse(response, cb) {
 
   const result_message = $("#result-message");
   const result_notification = $("#result-notification");
-  const answer_input = $("#challenge-input");
+  const answer_input = $("#submission-input");
   result_notification.removeClass();
   result_message.text(result.message);
 
@@ -24,30 +26,24 @@ function renderSubmissionResponse(response, cb) {
   } else if (result.status === "incorrect") {
     // Incorrect key
     result_notification.addClass(
-      "alert alert-danger alert-dismissable text-center"
+      "alert alert-danger alert-dismissable text-center",
     );
     result_notification.slideDown();
 
     answer_input.removeClass("correct");
     answer_input.addClass("wrong");
-    setTimeout(function() {
+    setTimeout(function () {
       answer_input.removeClass("wrong");
     }, 3000);
   } else if (result.status === "correct") {
     // Challenge Solved
     result_notification.addClass(
-      "alert alert-success alert-dismissable text-center"
+      "alert alert-success alert-dismissable text-center",
     );
     result_notification.slideDown();
 
     $(".challenge-solves").text(
-      parseInt(
-        $(".challenge-solves")
-          .text()
-          .split(" ")[0]
-      ) +
-        1 +
-        " Solves"
+      parseInt($(".challenge-solves").text().split(" ")[0]) + 1 + " Solves",
     );
 
     answer_input.val("");
@@ -56,7 +52,7 @@ function renderSubmissionResponse(response, cb) {
   } else if (result.status === "already_solved") {
     // Challenge already solved
     result_notification.addClass(
-      "alert alert-info alert-dismissable text-center"
+      "alert alert-info alert-dismissable text-center",
     );
     result_notification.slideDown();
 
@@ -64,25 +60,25 @@ function renderSubmissionResponse(response, cb) {
   } else if (result.status === "paused") {
     // CTF is paused
     result_notification.addClass(
-      "alert alert-warning alert-dismissable text-center"
+      "alert alert-warning alert-dismissable text-center",
     );
     result_notification.slideDown();
   } else if (result.status === "ratelimited") {
     // Keys per minute too high
     result_notification.addClass(
-      "alert alert-warning alert-dismissable text-center"
+      "alert alert-warning alert-dismissable text-center",
     );
     result_notification.slideDown();
 
     answer_input.addClass("too-fast");
-    setTimeout(function() {
+    setTimeout(function () {
       answer_input.removeClass("too-fast");
     }, 3000);
   }
-  setTimeout(function() {
+  setTimeout(function () {
     $(".alert").slideUp();
-    $("#challenge-submit").removeClass("disabled-button");
-    $("#challenge-submit").prop("disabled", false);
+    $("#submit-key").removeClass("disabled-button");
+    $("#submit-key").prop("disabled", false);
   }, 3000);
 
   if (cb) {
@@ -91,96 +87,96 @@ function renderSubmissionResponse(response, cb) {
 }
 
 $(() => {
-  $(".preview-challenge").click(function(_event) {
+  $(".preview-challenge").click(function (_event) {
     window.challenge = new Object();
     $.get(
       CTFd.config.urlRoot + "/api/v1/challenges/" + window.CHALLENGE_ID,
-      function(response) {
+      function (response) {
         const challenge_data = response.data;
         challenge_data["solves"] = null;
 
         $.getScript(
           CTFd.config.urlRoot + challenge_data.type_data.scripts.view,
-          function() {
+          function () {
             $.get(
               CTFd.config.urlRoot + challenge_data.type_data.templates.view,
-              function(template_data) {
+              function (template_data) {
                 $("#challenge-window").empty();
                 const template = nunjucks.compile(template_data);
                 window.challenge.data = challenge_data;
                 window.challenge.preRender();
 
                 challenge_data["description"] = window.challenge.render(
-                  challenge_data["description"]
+                  challenge_data["description"],
                 );
                 challenge_data["script_root"] = CTFd.config.urlRoot;
 
                 $("#challenge-window").append(template.render(challenge_data));
 
-                $(".nav-tabs a").click(function(event) {
+                $(".nav-tabs a").click(function (event) {
                   event.preventDefault();
                   $(this).tab("show");
                 });
 
                 // Handle modal toggling
-                $("#challenge-window").on("hide.bs.modal", function(_event) {
-                  $("#challenge-input").removeClass("wrong");
-                  $("#challenge-input").removeClass("correct");
+                $("#challenge-window").on("hide.bs.modal", function (_event) {
+                  $("#submission-input").removeClass("wrong");
+                  $("#submission-input").removeClass("correct");
                   $("#incorrect-key").slideUp();
                   $("#correct-key").slideUp();
                   $("#already-solved").slideUp();
                   $("#too-fast").slideUp();
                 });
 
-                $("#challenge-submit").click(function(event) {
+                $("#submit-key").click(function (event) {
                   event.preventDefault();
-                  $("#challenge-submit").addClass("disabled-button");
-                  $("#challenge-submit").prop("disabled", true);
-                  window.challenge.submit(function(data) {
+                  $("#submit-key").addClass("disabled-button");
+                  $("#submit-key").prop("disabled", true);
+                  window.challenge.submit(function (data) {
                     renderSubmissionResponse(data);
                   }, true);
                   // Preview passed as true
                 });
 
-                $("#challenge-input").keyup(function(event) {
+                $("#submission-input").keyup(function (event) {
                   if (event.keyCode == 13) {
-                    $("#challenge-submit").click();
+                    $("#submit-key").click();
                   }
                 });
 
                 window.challenge.postRender();
                 window.location.replace(
-                  window.location.href.split("#")[0] + "#preview"
+                  window.location.href.split("#")[0] + "#preview",
                 );
 
                 $("#challenge-window").modal();
-              }
+              },
             );
-          }
+          },
         );
-      }
+      },
     );
   });
 
-  $(".delete-challenge").click(function(_event) {
+  $(".delete-challenge").click(function (_event) {
     ezQuery({
       title: "Delete Challenge",
       body: "Are you sure you want to delete {0}".format(
-        "<strong>" + htmlEntities(window.CHALLENGE_NAME) + "</strong>"
+        "<strong>" + htmlEntities(window.CHALLENGE_NAME) + "</strong>",
       ),
-      success: function() {
+      success: function () {
         CTFd.fetch("/api/v1/challenges/" + window.CHALLENGE_ID, {
-          method: "DELETE"
-        }).then(function(response) {
+          method: "DELETE",
+        }).then(function (response) {
           if (response.success) {
             window.location = CTFd.config.urlRoot + "/admin/challenges";
           }
         });
-      }
+      },
     });
   });
 
-  $("#challenge-update-container > form").submit(function(event) {
+  $("#challenge-update-container > form").submit(function (event) {
     event.preventDefault();
     const params = $(event.target).serializeJSON(true);
 
@@ -189,14 +185,14 @@ $(() => {
       credentials: "same-origin",
       headers: {
         Accept: "application/json",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify(params)
-    }).then(function(data) {
+      body: JSON.stringify(params),
+    }).then(function (data) {
       if (data.success) {
         ezToast({
           title: "Success",
-          body: "Your challenge has been updated!"
+          body: "Your challenge has been updated!",
         });
       }
     });

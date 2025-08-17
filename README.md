@@ -26,7 +26,7 @@ In order for frp to work properly, proxied containers should have network `net`,
 networks:
     net:
         external:
-            name: bitnsc_frp_containers
+            name: ctfd_frp_containers
 ```
 
 That said, if your challenge has containers `service1` and `service2`, and `service1` does HTTP request to `http://service2`, then
@@ -38,7 +38,7 @@ put services which don't need to be proxied inside `CTFD_PRIVATE_NETWORK` networ
 
 ## Installation
 
-**REQUIRES: CTFd == v3.4.0**
+**REQUIRES: CTFd == v3.7.7**
 
 Install script:
 
@@ -49,27 +49,17 @@ sh get-docker.sh
 
 # replace <workdir> to your workdir
 cd <workdir>
-git clone https://github.com/CTFd/CTFd.git -b 3.4.0
+git clone https://github.com/CTFd/CTFd.git -b 3.7.7
 git clone https://github.com/mscw-infosec/CTFd-owl.git
 cp -r CTFd-owl/* CTFd
 mkdir -p /home/docker
-
-# make sure you have pip3 installed on your server
-pip3 install docker-compose
 ```
-
-The above command will try to install `docker-ce`, `python3-pip` and `docker-compose`. Before executing them, make sure
-the following requirements are met:
-
-* You have `curl`, `git`, `python3` and `pip` installed
-* GitHub is accessible
-* Docker Registry is accessible
 
 Please randomly generate sensitive information such as `SECRET_KEY`, `MYSQL_PASSWORD`, etc. in the `*.yml` you want to
 use.
 
 ```shell
-docker-compose -f CTFd/single.yml up -d
+docker compose -f CTFd/single.yml up -d
 ```
 
 You're all set! The next step is configuration.
@@ -85,10 +75,10 @@ You're all set! The next step is configuration.
 |           Options            |                                                 Content                                                  |
 |:----------------------------:|:--------------------------------------------------------------------------------------------------------:|
 |    **Docker Flag Prefix**    |                                               Flag prefix                                                |
-|     **Docker APIs URL**      |                            API url/path (default `unix://var/run/docker.sock`)                            |
+|     **Docker APIs URL**      |                            API url/path (default `unix:///var/run/docker.sock`)                            |
 |   **Max Container Count**    |                           Maximum number of containers (unlimited by default)                            |
 | **Docker Container Timeout** | The maximum running time of the container (it will be automatically destroyed after the time is reached) |
-|     **Max Renewal Time**     |                Maximum container renewal times (cannot be renewed if the number exceeds）                 |
+|     **Max Renewal Time**     |                Maximum container renewal times (cannot be renewed if the number exceeds)                 |
 
 #### FRP Settings
 
@@ -121,9 +111,11 @@ transport.poolCount = 1
 
 ### Add Challenge
 
-Just add the task, that's all.
+Just add the task, that's all. Use example from `CTFd/plugins/ctfd-owl/source/sanity-task`
 
 ### Demo
+
+Theme used: pixo (originally by hmrserver, modified by michaelsantosti for v3.7.7 & JustMarfix for CTFd-Owl). It is available in `themes` folder of this repo.
 
 ![challenges.png](./assets/challenges.png)
 

@@ -7,7 +7,7 @@
 	<link rel="shortcut icon" href="{{ Configs.ctf_small_icon }}" type="image/x-icon">
 	<link rel="stylesheet" href="{{ url_for('views.themes', path='css/fonts.css') }}">
 	<link rel="preconnect" href="https://fonts.gstatic.com">
-	<link href="https://fonts.loli.net/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="{{ url_for('views.themes', path='css/main.css') }}">
 	<link rel="stylesheet" href="{{ url_for('views.themes', path='css/core.css') }}">
 	{% block stylesheets %}
@@ -36,7 +36,8 @@
 		{% endblock %}
 	</main>
 
-	<footer class="footer">
+
+  <footer class="footer">
 		<div class="container text-center">
 			<div><a href="https://github.com/hmrserver/CTFd-theme-pixo" class="text-secondary"><small class="text-muted">Theme Pixo, modified by JustMarfix</small></a></div>
 			<a href="https://github.com/mscw-infosec/CTFd-Owl" class="text-secondary">
@@ -44,6 +45,7 @@
 			</a>
 		</div>
 	</footer>
+</footer>
 
 	<script defer src="{{ url_for('views.themes', path='js/vendor.bundle.js') }}"></script>
 	<script defer src="{{ url_for('views.themes', path='js/core.js') }}"></script>

@@ -1,4 +1,4 @@
- {% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block stylesheets %}
 {% endblock %}
@@ -6,15 +6,19 @@
 {% block content %}
 <div class="jumbotron">
 	<div class="container">
-		<h1>Settings</h1>
+		<h1>{% trans %}Settings{% endtrans %}</h1>
 	</div>
 </div>
 <div class="container">
 	<div class="row">
 		<div class="col-md-2 offset-md-1">
 			<div class="nav flex-column nav-pills" role="tablist">
-				<a class="nav-link active" id="settings-profile-tab" data-toggle="pill" href="#profile" role="tab">Profile</a>
-				<a class="nav-link" id="settings-tokens-tab" data-toggle="pill" href="#tokens" role="tab">Access Tokens</a>
+				<a class="nav-link active" id="settings-profile-tab" data-toggle="pill" href="#profile" role="tab">
+					{% trans %}Profile{% endtrans %}
+				</a>
+				<a class="nav-link" id="settings-tokens-tab" data-toggle="pill" href="#tokens" role="tab">
+					{% trans %}Access Tokens{% endtrans %}
+				</a>
 			</div>
 		</div>
 		<div class="col-md-8">
@@ -56,6 +60,10 @@
 							<b>{{ form.website.label }}</b>
 							{{ form.website(class="form-control", value=website or "") }}
 						</div>
+		                <div class="form-group">
+                   			 <b>{{ form.language.label }}</b>
+                  			  {{ form.language(class="form-control custom-select", value=language) }}
+                 		</div>
 						<div class="form-group">
 							<b>{{ form.country.label }}</b>
 							{{ form.country(class="form-control custom-select", value=country) }}
@@ -90,14 +98,14 @@
 
 					{% if tokens %}
 					<hr>
-					<h4 class="text-center">Active Tokens</h4>
+					<h4 class="text-center">{% trans %}Active Tokens{% endtrans %}</h4>
 					<table class="table table-striped">
 						<thead>
 							<tr>
-								<td class="text-center"><b>Type</b></td>
-								<td class="text-center"><b>Created</b></td>
-								<td class="text-center"><b>Expiration</b></td>
-								<td class="text-center"><b>Delete</b></td>
+								<td class="text-center"><b>{% trans %}Type{% endtrans %}</b></td>
+								<td class="text-center"><b>{% trans %}Created{% endtrans %}</b></td>
+								<td class="text-center"><b>{% trans %}Expiration{% endtrans %}</b></td>
+								<td class="text-center"><b>{% trans %}Delete{% endtrans %}</b></td>
 							</tr>
 						</thead>
 						<tbody>

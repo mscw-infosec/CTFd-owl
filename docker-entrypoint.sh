@@ -7,7 +7,7 @@ ACCESS_LOG=${ACCESS_LOG:--}
 ERROR_LOG=${ERROR_LOG:--}
 WORKER_TEMP_DIR=${WORKER_TEMP_DIR:-/dev/shm}
 SECRET_KEY=${SECRET_KEY:-}
-DATABASE_URL=${DATABASE_URL:-}
+SKIP_DB_PING=${SKIP_DB_PING:-false}
 
 # Check that a .ctfd_secret_key file or SECRET_KEY envvar is set
 if [ ! -f .ctfd_secret_key ] && [ -z "$SECRET_KEY" ]; then
@@ -19,25 +19,14 @@ if [ ! -f .ctfd_secret_key ] && [ -z "$SECRET_KEY" ]; then
     fi
 fi
 
-# Check that the database is available
-if [ -n "$DATABASE_URL" ]
-    then
-    url=`echo $DATABASE_URL | awk -F[@//] '{print $4}'`
-    database=`echo $url | awk -F[:] '{print $1}'`
-    port=`echo $url | awk -F[:] '{print $2}'`
-    echo "Waiting for $database:$port to be ready"
-    while ! mysqladmin ping -h "$database" -P "$port" --silent; do
-        # Show some progress
-        echo -n '.';
-        sleep 1;
-    done
-    echo "$database is ready"
-    # Give it another second.
-    sleep 1;
+# Skip db ping if SKIP_DB_PING is set to a value other than false or empty string
+if [[ "$SKIP_DB_PING" == "false" ]]; then
+  # Ensures that the database is available
+  python ping.py
 fi
 
 # Initialize database
-python manage.py db upgrade
+flask db upgrade
 
 # Start CTFd
 echo "Starting CTFd"

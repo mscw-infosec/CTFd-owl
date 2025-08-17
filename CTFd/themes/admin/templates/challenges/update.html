@@ -4,6 +4,7 @@
 <form method="POST">
 	{% block plugin_additions %}
 	{% endblock %}
+
 	{% block name %}
 	<div class="form-group">
 		<label>
@@ -33,6 +34,18 @@
 			</small>
 		</label>
 		<textarea id="desc-editor" class="form-control chal-desc-editor markdown" name="description" rows="10">{{ challenge.description }}</textarea>
+	</div>
+	{% endblock %}
+
+	{% block attribution %}
+	<div class="form-group">
+		<label>
+			Attribution:<br>
+			<small class="form-text text-muted">
+				Attribution for your challenge <small>(supports markdown)</small>
+			</small>
+		</label>
+		<input type="text" class="form-control" name="attribution" value="{{ challenge.attribution }}">
 	</div>
 	{% endblock %}
 
