@@ -55,8 +55,10 @@ mkdir -p /home/docker
 
 Не забудьте заменить переменные `SECRET_KEY`, `MYSQL_PASSWORD` и другие подобные в вашем `single.yml`.
 
+Запустите эту команду в корне CTFd для развёртывания платформы:
+
 ```shell
-docker compose -f CTFd/single.yml up -d
+docker compose up -d
 ```
 
 Вы победили установку! :) Впереди конфигурация.
