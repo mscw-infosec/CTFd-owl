@@ -58,8 +58,9 @@ mkdir -p /home/docker
 Please randomly generate sensitive information such as `SECRET_KEY`, `MYSQL_PASSWORD`, etc. in the `*.yml` you want to
 use.
 
+To start CTFd use this command while in CTFd root:
 ```shell
-docker compose -f CTFd/single.yml up -d
+docker compose up -d
 ```
 
 You're all set! The next step is configuration.
