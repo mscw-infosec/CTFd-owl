@@ -43,8 +43,8 @@ class FrpUtils:
                 c.port
             )
 
-        frp_api_ip = "frpc"
-        frp_api_port = "7400"
+        frp_api_ip = configs.get("frpc_direct_ip_address", "frpc")
+        frp_api_port = configs.get("frpc_port", "7400")
         try:
             if configs.get("frpc_config_template") is not None:
                 assert requests.put("http://" + frp_api_ip + ":" + frp_api_port + "/api/config", output,

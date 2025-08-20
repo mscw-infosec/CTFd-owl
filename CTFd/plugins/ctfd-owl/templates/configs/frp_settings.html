@@ -11,12 +11,32 @@
 		</div>
         <div class="form-group">
 			<label>
-				Frp Direct IP Address
+				FRPS address (shown in task card)
 				<small class="form-text text-muted">
-					For direct redirect
+					FRPS IP/domain
 				</small>
 			</label>
 			<input type="text" class="form-control" id="frp-direct-ip-address" name="frp_direct_ip_address" value="{{ configs.get("frp_direct_ip_address") }}">
+		</div>
+
+		<div class="form-group">
+			<label>
+				FRPC address
+				<small class="form-text text-muted">
+					FRPC IP/domain
+				</small>
+			</label>
+			<input type="text" class="form-control" id="frpc-direct-ip-address" name="frpc_direct_ip_address" value="{{ configs.get("frpc_direct_ip_address") }}">
+		</div>
+
+		<div class="form-group">
+			<label>
+				FRPC port
+				<small class="form-text text-muted">
+					FRPC port
+				</small>
+			</label>
+			<input type="text" class="form-control" id="frpc-port" name="frpc_port" value="{{ configs.get("frpc_port") }}">
 		</div>
 
         <div class="form-group">
