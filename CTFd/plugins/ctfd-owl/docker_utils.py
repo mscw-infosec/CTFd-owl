@@ -81,13 +81,20 @@ class DockerUtils:
                             "cont_port": contport,
                         })
         except Exception as e:
-            log("owl",
+            try:
+                log("owl",
                 'Stdout: {out}\nStderr: {err}',
                 out=e.stdout.decode(),
                 err=e.stderr.decode()
                 )
+            except Exception:
+                log("owl",
+                'Stdout: {out}\nStderr: {err}',
+                out=e,
+                err=e
+                )
             return e
-
+        
         try:
             command = "cp -r '{}' '{}'".format(sname, dname)
             process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -128,10 +135,17 @@ class DockerUtils:
             problem_docker_run_dir = os.environ['PROBLEM_DOCKER_RUN_FOLDER']
             dname = os.path.join(problem_docker_run_dir, name)
         except Exception as e:
-            log("owl",
+            try:
+                log("owl",
                 'Stdout: {out}\nStderr: {err}',
                 out=e.stdout.decode(),
                 err=e.stderr.decode()
+                )
+            except Exception as err:
+                log("owl",
+                'Stdout: {out}\nStderr: {err}',
+                out=e,
+                err=e
                 )
             return str(e)
 
