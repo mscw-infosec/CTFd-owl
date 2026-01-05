@@ -36,6 +36,7 @@ def load(app):
     }
     DynamicCheckValueChallenge.scripts = {
         "create": f"/plugins/{plugin_name}/assets/js/create.js",
+        "update": f"/plugins/{plugin_name}/assets/js/update.js",
         "view": f"/plugins/{plugin_name}/assets/js/view.js",
     }
     CHALLENGE_CLASSES["dynamic_check_docker"] = DynamicCheckValueChallenge
