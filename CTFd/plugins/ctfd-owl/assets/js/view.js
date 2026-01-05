@@ -168,8 +168,6 @@ function loadInfo() {
     var target = "/plugins/ctfd-owl/container?challenge_id={challenge_id}";
     target = target.replace("{challenge_id}", challenge_id);
 
-    var params = {};
-
     CTFd.fetch(target, {
         method: "GET",
         credentials: "same-origin",
@@ -279,7 +277,6 @@ CTFd._internal.challenge.destroy = function () {
     var challenge_id = getOwlChallengeId();
     var target = "/plugins/ctfd-owl/container?challenge_id={challenge_id}";
     target = target.replace("{challenge_id}", challenge_id);
-    var body = {};
     var params = {};
 
     CTFd.lib.$("#owl-button-destroy")[0].innerHTML = "Waiting...";
@@ -332,7 +329,6 @@ CTFd._internal.challenge.renew = function () {
     var challenge_id = getOwlChallengeId();
     var target = "/plugins/ctfd-owl/container?challenge_id={challenge_id}";
     target = target.replace("{challenge_id}", challenge_id);
-    var body = {};
     var params = {};
 
     CTFd.lib.$("#owl-button-renew")[0].innerHTML = "Waiting...";
