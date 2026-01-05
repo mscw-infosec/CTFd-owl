@@ -1,9 +1,7 @@
 import datetime
 
-from CTFd.models import (
-    db
-)
-from .models import OwlConfigs, OwlContainers
+from CTFd.models import db
+from ..models import OwlConfigs, OwlContainers
 
 
 class DBUtils:
@@ -36,6 +34,7 @@ class DBUtils:
     @staticmethod
     def new_container(user_id, challenge_id, flag, docker_id, port=0, ip="", name="", conntype="", comment="",
                       contport=0):
+        """Create a new container DB record."""
         container = OwlContainers(user_id=user_id, challenge_id=challenge_id, flag=flag, docker_id=docker_id, port=port,
                                   ip=ip, name=name, conntype=conntype, comment=comment, contport=contport, start_time=datetime.datetime.now(datetime.timezone.utc))
         db.session.add(container)
@@ -45,6 +44,7 @@ class DBUtils:
 
     @staticmethod
     def get_current_containers(user_id):
+        """Get all containers for a owner user_id."""
         q = db.session.query(OwlContainers)
         q = q.filter(OwlContainers.user_id == user_id)
         records = q.all()
@@ -55,6 +55,7 @@ class DBUtils:
 
     @staticmethod
     def get_container_by_port(port):
+        """Get container for a port."""
         q = db.session.query(OwlContainers)
         q = q.filter(OwlContainers.port == port)
         records = q.all()
@@ -65,6 +66,7 @@ class DBUtils:
 
     @staticmethod
     def remove_current_container(user_id):
+        """Remove container for a owner user_id."""
         q = db.session.query(OwlContainers)
         q = q.filter(OwlContainers.user_id == user_id)
         # records = q.all()
@@ -77,6 +79,7 @@ class DBUtils:
 
     @staticmethod
     def renew_current_container(user_id):
+        """Extend container lifetime and increment renew_count."""
         q = db.session.query(OwlContainers)
         q = q.filter(OwlContainers.user_id == user_id)
         # q = q.filter(OwlContainers.challenge_id == challenge_id)
@@ -99,6 +102,7 @@ class DBUtils:
 
     @staticmethod
     def get_all_expired_container():
+        """Get all expired containers."""
         configs = DBUtils.get_all_configs()
         timeout = int(configs.get("docker_timeout", "3600"))
 
@@ -108,6 +112,7 @@ class DBUtils:
 
     @staticmethod
     def get_all_alive_container():
+        """Get all alive containers."""
         configs = DBUtils.get_all_configs()
         timeout = int(configs.get("docker_timeout", "3600"))
 

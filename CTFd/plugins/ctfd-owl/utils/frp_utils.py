@@ -1,8 +1,8 @@
 import requests
 
 from .db_utils import DBUtils
-from .extensions import log
-from .models import DynamicCheckChallenge, OwlContainers
+from ..extensions import log
+from ..models import DynamicCheckChallenge, OwlContainers
 
 
 class FrpUtils:
@@ -56,7 +56,7 @@ class FrpUtils:
         except Exception as e:
             import traceback
             log("owl",
-                '[ERROR]frp reload: {err}',
+                '[ERROR] frp reload: {err}',
                 err=traceback.format_exc()
                 )
             pass

@@ -14,15 +14,14 @@ from CTFd.plugins import register_plugin_assets_directory
 from CTFd.plugins.challenges import CHALLENGE_CLASSES
 from CTFd.utils.decorators import admins_only, authed_only
 from .challenge_type import DynamicCheckValueChallenge
-from .control_utils import ControlUtil
-from .db_utils import DBUtils
-from .extensions import get_mode
-from .frp_utils import FrpUtils
+from .utils.control_utils import ControlUtil
+from .utils.db_utils import DBUtils
+from .extensions import get_mode, get_effective_competition_mode
+from .utils.frp_utils import FrpUtils
 from .models import DynamicCheckChallenge, OwlContainers
 
 
 def load(app):
-    # upgrade()
     plugin_name = __name__.split('.')[-1]
     app.db.create_all()
     register_plugin_assets_directory(
@@ -31,14 +30,13 @@ def load(app):
     )
 
     DynamicCheckValueChallenge.templates = {
-        "create": f"/plugins/{plugin_name}/assets/create.html",
-        "update": f"/plugins/{plugin_name}/assets/update.html",
-        "view": f"/plugins/{plugin_name}/assets/view.html",
+        "create": f"/plugins/{plugin_name}/assets/html/create.html",
+        "update": f"/plugins/{plugin_name}/assets/html/update.html",
+        "view": f"/plugins/{plugin_name}/assets/html/view.html",
     }
     DynamicCheckValueChallenge.scripts = {
-        "create": f"/plugins/{plugin_name}/assets/create.js",
-        "update": f"/plugins/{plugin_name}/assets/update.js",
-        "view": f"/plugins/{plugin_name}/assets/view.js",
+        "create": f"/plugins/{plugin_name}/assets/js/create.js",
+        "view": f"/plugins/{plugin_name}/assets/js/view.js",
     }
     CHALLENGE_CLASSES["dynamic_check_docker"] = DynamicCheckValueChallenge
 
@@ -73,18 +71,26 @@ def load(app):
 
     @owl_blueprint.route('/admin/settings', methods=['GET'])
     @admins_only
-    # list plugin settings
     def admin_list_configs():
         configs = DBUtils.get_all_configs()
         return render_template('configs.html', configs=configs)
 
     @owl_blueprint.route('/admin/settings', methods=['PATCH'])
     @admins_only
-    # modify plugin settings
     def admin_save_configs():
         req = request.get_json()
         DBUtils.save_all_configs(req.items())
         return jsonify({'success': True})
+
+    @owl_blueprint.route('/notifications/settings', methods=['GET'])
+    def notifications_settings():
+        configs = DBUtils.get_all_configs()
+        notifications_mode = configs.get('owl_notifications_mode', 'toast')
+        toast_strategy = configs.get('owl_toast_strategy', 'auto')
+        return jsonify({
+            'notifications_mode': notifications_mode,
+            'toast_strategy': toast_strategy,
+        })
 
     @owl_blueprint.route('/admin/containers/count', methods=['GET'])
     @admins_only
@@ -97,7 +103,7 @@ def load(app):
     @admins_only
     # list alive containers
     def admin_list_containers():
-        mode = utils.get_config("user_mode")
+        mode = get_effective_competition_mode()
         configs = DBUtils.get_all_configs()
         page = abs(request.args.get("page", 1, type=int))
         results_per_page = 50
@@ -125,7 +131,6 @@ def load(app):
         ControlUtil.destroy_container(user_id)
         return jsonify({'success': True})
 
-    # instances
     @owl_blueprint.route('/container', methods=['GET'])
     @authed_only
     def list_container():

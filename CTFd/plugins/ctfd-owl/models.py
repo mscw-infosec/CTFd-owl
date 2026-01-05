@@ -1,9 +1,6 @@
 import datetime
 
-from CTFd.models import (
-    db,
-    Challenges,
-)
+from CTFd.models import db, Challenges
 
 
 class DynamicCheckChallenge(Challenges):

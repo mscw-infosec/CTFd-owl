@@ -9,11 +9,20 @@ import yaml
 
 from CTFd.models import Flags
 from .db_utils import DBUtils
-from .extensions import log
-from .models import DynamicCheckChallenge, OwlContainers
+from ..extensions import log
+from ..models import DynamicCheckChallenge, OwlContainers
 
 
 class DockerUtils:
+    @staticmethod
+    def _get_plugin_root_dir() -> str:
+        """Return absolute path to the ctfd-owl plugin root directory.
+
+        This module lives in `ctfd-owl/utils/`. We resolve paths like `source/`
+        relative to the plugin root (`ctfd-owl/`), not `utils/`.
+        """
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
     @staticmethod
     def gen_flag():
         configs = DBUtils.get_all_configs()
@@ -33,7 +42,7 @@ class DockerUtils:
     def up_docker_compose(user_id, challenge_id):
         try:
             configs = DBUtils.get_all_configs()
-            basedir = os.path.dirname(__file__)
+            plugin_root = DockerUtils._get_plugin_root_dir()
             challenge: DynamicCheckChallenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
 
             if challenge.flag_type == 'static':
@@ -42,7 +51,7 @@ class DockerUtils:
                 flag: str = DockerUtils.gen_flag()
 
             socket = DockerUtils.get_socket()
-            sname = os.path.join(basedir, "source/" + challenge.dirname)
+            sname = os.path.join(plugin_root, "source", challenge.dirname)
             dirname = challenge.dirname.split("/")[-1]
             prefix = configs.get("docker_flag_prefix")
             name = "{}_user{}_{}".format(prefix, user_id, dirname).lower()
@@ -126,7 +135,6 @@ class DockerUtils:
     def down_docker_compose(user_id, challenge_id):
         try:
             configs = DBUtils.get_all_configs()
-            basedir = os.path.dirname(__file__)
             socket = DockerUtils.get_socket()
             challenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
             dirname = challenge.dirname.split("/")[-1]

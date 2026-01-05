@@ -6,7 +6,7 @@ from sqlalchemy.sql import and_
 from CTFd.models import Challenges, Users
 from .db_utils import DBUtils
 from .docker_utils import DockerUtils
-from .extensions import log
+from ..extensions import log
 
 
 class ControlUtil:
