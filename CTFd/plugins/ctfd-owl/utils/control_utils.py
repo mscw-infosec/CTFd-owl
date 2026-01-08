@@ -23,7 +23,8 @@ class ControlUtil:
                 DBUtils.new_container(user_id, challenge_id, flag=rq[2], port=container["port"], docker_id=rq[0],
                                       ip=rq[3], name=f'{prefix.lower()}_user{user_id}_{rq[4]}-{container["service"]}-1',
                                       conntype=container["conntype"], comment=container["comment"],
-                                      contport=container["cont_port"])
+                                      contport=container["cont_port"],
+                                      ssh_username=(container.get("ssh_username", "") if container.get("conntype") == "ssh" else ""))
             return True
         else:
             return rq

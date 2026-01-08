@@ -20,6 +20,7 @@ Proxied containers should have at least first two of these labels:
 -   `owl.proxy.port=8080` - container port that will be connected to FRP (ex. 8080)
 -   `owl.label.conntype=nc` - will be shown as `(nc)` before container's `ip:port` in challenge card.
 -   `owl.label.comment=My comment.` - will be shown as `(My comment.)` next line after container's `ip:port` in challenge card.
+-   `owl.label.ssh_username=ctf` - used only when `owl.label.conntype=ssh` (shown as `ssh ctf@ip -p port` in challenge card).
 
 The connection data display has been changed for `nс` and `ssh`.
 

@@ -49,6 +49,7 @@ class OwlContainers(db.Model):
 
     conntype = db.Column(db.String(32), default="")
     comment = db.Column(db.String(128), default="")
+    ssh_username = db.Column(db.String(64), default="")
     contport = db.Column(db.Integer)
 
     # Relationships

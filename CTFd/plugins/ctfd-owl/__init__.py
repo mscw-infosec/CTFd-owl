@@ -24,6 +24,10 @@ from .models import DynamicCheckChallenge, OwlContainers
 def load(app):
     plugin_name = __name__.split('.')[-1]
     app.db.create_all()
+
+    # Best-effort schema sync for existing installs.
+    DBUtils.ensure_schema()
+    
     register_plugin_assets_directory(
         app, base_path=f"/plugins/{plugin_name}/assets",
         endpoint=f'plugins.{plugin_name}.assets'
@@ -156,6 +160,7 @@ def load(app):
                         "lan_domain": lan_domain,
                         "conntype": container.conntype,
                         "comment": container.comment,
+                        "ssh_username": (getattr(container, "ssh_username", "") if container.conntype == "ssh" else ""),
                     })
                 return jsonify({'success': True, 'type': 'redirect', 'ip': configs.get('frp_direct_ip_address', ""),
                                 'containers_data': containers_data})

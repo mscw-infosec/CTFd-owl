@@ -235,7 +235,8 @@ function loadInfo() {
                     if (container.conntype === "nc") {
                         panel_html += i + 1 + ". " + conntype + '<a target="_blank" whited>nc ' + response.ip + " " + container.port + "</a>" + comment + "<br/>";
                     } else if (container.conntype === "ssh") {
-                        panel_html += i + 1 + ". " + conntype + '<a target="_blank" whited>ssh USERNAME@' + response.ip + " -p " + container.port + "</a>" + comment + "<br/>";
+                        const sshUser = container.ssh_username && container.ssh_username !== "" ? container.ssh_username : "USERNAME";
+                        panel_html += i + 1 + ". " + conntype + '<a target="_blank" whited>ssh ' + sshUser + "@" + response.ip + " -p " + container.port + "</a>" + comment + "<br/>";
                     } else {
                         panel_html += i + 1 + ". " + conntype + '<a href="' + proto + "//" + response.ip + ":" + container.port + '" target="_blank">' + response.ip + ":" + container.port + "</a>" + comment + "<br/>";
                     }

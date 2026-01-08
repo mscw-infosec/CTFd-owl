@@ -15,6 +15,19 @@ from ..models import DynamicCheckChallenge, OwlContainers
 
 class DockerUtils:
     @staticmethod
+    def _iter_compose_labels(labels):
+        if labels is None:
+            return []
+        if isinstance(labels, dict):
+            return [f"{k}={v}" for k, v in labels.items()]
+        return labels
+
+    @staticmethod
+    def _split_label(label: str) -> tuple[str, str]:
+        key, _, value = label.partition("=")
+        return key, value
+
+    @staticmethod
     def _get_plugin_root_dir() -> str:
         """Return absolute path to the ctfd-owl plugin root directory.
 
@@ -67,20 +80,28 @@ class DockerUtils:
                 open(sname + '/docker-compose.yml', 'r').read())
             for service in compose_data["services"].keys():
                 if "labels" in compose_data["services"][service] and \
-                        "owl.proxy=true" in compose_data["services"][service]["labels"]:
+                        "owl.proxy=true" in DockerUtils._iter_compose_labels(compose_data["services"][service]["labels"]):
                     port = random.randint(min_port, max_port)
                     while port in ports_list or port in [x["port"] for x in ports]:
                         port = random.randint(min_port, max_port)
                     conntype = ""
                     comment = ""
                     contport = 0
-                    for label in compose_data["services"][service]["labels"]:
-                        if label.startswith("owl.label.conntype"):
-                            conntype = label.split("=")[1]
-                        if label.startswith("owl.label.comment"):
-                            comment = label.split("=")[1]
-                        if label.startswith("owl.proxy.port"):
-                            contport = int(label.split("=")[1])
+                    ssh_username = ""
+                    for label in DockerUtils._iter_compose_labels(compose_data["services"][service].get("labels")):
+                        key, value = DockerUtils._split_label(str(label))
+                        if key == "owl.label.conntype":
+                            conntype = value
+                        elif key == "owl.label.comment":
+                            comment = value
+                        elif key == "owl.proxy.port":
+                            contport = int(value)
+                        elif key == "owl.label.ssh_username":
+                            ssh_username = value
+
+                    # Only meaningful for SSH connection type.
+                    if conntype != "ssh":
+                        ssh_username = ""
                     ports.append(
                         {
                             "service": service,
@@ -88,6 +109,7 @@ class DockerUtils:
                             "conntype": conntype,
                             "comment": comment,
                             "cont_port": contport,
+                            "ssh_username": ssh_username,
                         })
         except Exception as e:
             try:
