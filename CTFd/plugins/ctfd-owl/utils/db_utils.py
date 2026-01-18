@@ -17,8 +17,8 @@ class DBUtils:
         try:
             inspector = inspect(db.engine)
             cols = {c["name"] for c in inspector.get_columns("owl_containers")}
-            if "ssh_username" not in cols:
-                ddl = "ALTER TABLE owl_containers ADD COLUMN ssh_username VARCHAR(64) DEFAULT ''"
+            if "labels" not in cols:
+                ddl = "ALTER TABLE owl_containers ADD COLUMN labels VARCHAR(2048) DEFAULT '{}'"
                 with db.engine.begin() as conn:
                     conn.execute(text(ddl))
         except Exception:
@@ -50,12 +50,20 @@ class DBUtils:
         db.session.close()
 
     @staticmethod
-    def new_container(user_id, challenge_id, flag, docker_id, port=0, ip="", name="", conntype="", comment="",
-                      contport=0, ssh_username=""):
+    def new_container(
+        user_id,
+        challenge_id,
+        flag,
+        docker_id,
+        port=0,
+        ip="",
+        name="",
+        labels="{}",
+    ):
         """Create a new container DB record."""
         container = OwlContainers(user_id=user_id, challenge_id=challenge_id, flag=flag, docker_id=docker_id, port=port,
-                                  ip=ip, name=name, conntype=conntype, comment=comment, contport=contport,
-                                  ssh_username=ssh_username,
+                                  ip=ip, name=name,
+                                  labels=labels,
                                   start_time=datetime.datetime.now(datetime.timezone.utc))
         db.session.add(container)
         db.session.commit()

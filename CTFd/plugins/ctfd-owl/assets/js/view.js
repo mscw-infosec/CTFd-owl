@@ -220,23 +220,38 @@ function loadInfo() {
                     let comment = "";
                     let conntype = "";
                     let proto = "";
-                    if (container.comment !== "") {
-                        comment = "<br/><a>(" + container.comment + ")</a>";
+                    const labels = container.labels || {};
+                    const fields = labels.fields || {};
+                    const connType = fields.conntype || "";
+                    const connComment = fields.comment || "";
+                    const sshUsername = fields.ssh_username || "";
+                    const sshPassword = fields.ssh_password || "";
+
+                    if (connComment !== "") {
+                        comment = "<br/><a>(" + connComment + ")</a>";
                     }
-                    if (container.conntype !== "") {
-                        conntype = "(" + container.conntype + ") ";
+
+                    if (connType !== "") {
+                        conntype = "(" + connType + ") ";
                     }
-                    if (container.conntype === "http") {
+                    if (connType === "http") {
                         proto = "http:";
                     }
-                    if (container.conntype === "https") {
+                    if (connType === "https") {
                         proto = "https:";
                     }
-                    if (container.conntype === "nc") {
+
+                    if (connType === "nc") {
                         panel_html += i + 1 + ". " + conntype + '<a target="_blank" whited>nc ' + response.ip + " " + container.port + "</a>" + comment + "<br/>";
-                    } else if (container.conntype === "ssh") {
-                        const sshUser = container.ssh_username && container.ssh_username !== "" ? container.ssh_username : "USERNAME";
-                        panel_html += i + 1 + ". " + conntype + '<a target="_blank" whited>ssh ' + sshUser + "@" + response.ip + " -p " + container.port + "</a>" + comment + "<br/>";
+                    } else if (connType === "telnet") {
+                        panel_html += i + 1 + ". " + conntype + '<a target="_blank" whited>telnet ' + response.ip + " " + container.port + "</a>" + comment + "<br/>";
+                    } else if (connType === "ssh") {
+                        const sshUser = sshUsername && sshUsername !== "" ? sshUsername : "USERNAME";
+                        panel_html += i + 1 + ". " + conntype + '<a target="_blank" whited>ssh ' + sshUser + "@" + response.ip + " -p " + container.port + "</a>";
+                        if (sshPassword && sshPassword !== "") {
+                            panel_html += "<br/>Password: <code>" + sshPassword + "</code>" ;
+                        }
+                        panel_html += comment + "<br/>";
                     } else {
                         panel_html += i + 1 + ". " + conntype + '<a href="' + proto + "//" + response.ip + ":" + container.port + '" target="_blank">' + response.ip + ":" + container.port + "</a>" + comment + "<br/>";
                     }

@@ -6,7 +6,7 @@ Russian version of this README is available [here](./README-RU.md).
 
 1. Multiple dynamic containers & ports per challenge.
 2. The port is randomized on each container startup.
-3. Adapted to "teams" and "users" modes. In "teams" mode, users of the same team will use the same container. # this is not tested or supported properly, open for PRs
+3. Adapted to "teams" and "users" modes. In "teams" mode there are two options (depends on Competition Mode): one shared instance per team or one instance per user.
 4. Both static (plaintext or regex) and dynamic flags are supported.
 5. FLAG variable exported from CTFd to environment when running `docker compose up` on challenge.
 6. Everything about container (including frp) should be configured using labels in docker-compose.
@@ -18,11 +18,12 @@ Proxied containers should have at least first two of these labels:
 
 -   `owl.proxy=true` - tells CTFd-Owl that container should be proxied
 -   `owl.proxy.port=8080` - container port that will be connected to FRP (ex. 8080)
--   `owl.label.conntype=nc` - will be shown as `(nc)` before container's `ip:port` in challenge card.
--   `owl.label.comment=My comment.` - will be shown as `(My comment.)` next line after container's `ip:port` in challenge card.
--   `owl.label.ssh_username=ctf` - used only when `owl.label.conntype=ssh` (shown as `ssh ctf@ip -p port` in challenge card).
+-   `owl.label.conntype=nc` - connection type (http/https/nc/ssh/telnet), will be shown as `(nc)` before container's `ip:port` in challenge card
+-   `owl.label.comment=My comment.` - will be shown as `(My comment.)` next line after container's `ip:port` in challenge card
+-   `owl.label.ssh.username=ctf` - SSH username (used only when `conntype=ssh`, shown as `ssh ctf@ip -p port` in challenge card)
+-   `owl.label.ssh.password=secret` - SSH password (optional, shown in challenge card when provided)
 
-The connection data display has been changed for `nс` and `ssh`.
+The connection data display has been changed for `nc`, `telnet` and `ssh`.
 
 ### Networks
 
@@ -116,8 +117,11 @@ transport.poolCount = 1
 
 ### Add Challenge
 
--   An example of a common task is given in the `CTFd/plugins/ctfd-owl/source/sanity-task`. You can create your own task based on it.
--   An example of a task with a dynamic flag is given in `CTFd/plugins/ctfd-owl/source/dynamic-task`. You can create your own task based on it.
+-   An example of a common task is given in the `CTFd/plugins/ctfd-owl/source/sanity-task`.
+-   An example of a task with a dynamic flag is given in `CTFd/plugins/ctfd-owl/source/dynamic-task`.
+-   An example of an SSH task is given in `CTFd/plugins/ctfd-owl/source/tasks/ssh-task`.
+
+You can create your own tasks based on them.
 
 ### Demo
 

@@ -9,24 +9,12 @@ import yaml
 
 from CTFd.models import Flags
 from .db_utils import DBUtils
+from .labels_utils import LabelsUtils
 from ..extensions import log
 from ..models import DynamicCheckChallenge, OwlContainers
 
 
 class DockerUtils:
-    @staticmethod
-    def _iter_compose_labels(labels):
-        if labels is None:
-            return []
-        if isinstance(labels, dict):
-            return [f"{k}={v}" for k, v in labels.items()]
-        return labels
-
-    @staticmethod
-    def _split_label(label: str) -> tuple[str, str]:
-        key, _, value = label.partition("=")
-        return key, value
-
     @staticmethod
     def _get_plugin_root_dir() -> str:
         """Return absolute path to the ctfd-owl plugin root directory.
@@ -79,37 +67,18 @@ class DockerUtils:
             compose_data: dict[str, Union[str, int, dict]] = yaml.safe_load(
                 open(sname + '/docker-compose.yml', 'r').read())
             for service in compose_data["services"].keys():
-                if "labels" in compose_data["services"][service] and \
-                        "owl.proxy=true" in DockerUtils._iter_compose_labels(compose_data["services"][service]["labels"]):
+                service_labels = compose_data["services"][service].get("labels")
+                owl_meta = LabelsUtils.parse_owl_metadata(service_labels)
+                if service_labels is not None and bool((owl_meta.get("proxy") or {}).get("enabled")) is True:
                     port = random.randint(min_port, max_port)
                     while port in ports_list or port in [x["port"] for x in ports]:
                         port = random.randint(min_port, max_port)
-                    conntype = ""
-                    comment = ""
-                    contport = 0
-                    ssh_username = ""
-                    for label in DockerUtils._iter_compose_labels(compose_data["services"][service].get("labels")):
-                        key, value = DockerUtils._split_label(str(label))
-                        if key == "owl.label.conntype":
-                            conntype = value
-                        elif key == "owl.label.comment":
-                            comment = value
-                        elif key == "owl.proxy.port":
-                            contport = int(value)
-                        elif key == "owl.label.ssh_username":
-                            ssh_username = value
-
-                    # Only meaningful for SSH connection type.
-                    if conntype != "ssh":
-                        ssh_username = ""
+                    labels_json = LabelsUtils.dumps_labels(owl_meta)
                     ports.append(
                         {
                             "service": service,
                             "port": port,
-                            "conntype": conntype,
-                            "comment": comment,
-                            "cont_port": contport,
-                            "ssh_username": ssh_username,
+                            "labels": labels_json,
                         })
         except Exception as e:
             try:

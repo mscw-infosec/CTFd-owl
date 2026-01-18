@@ -18,6 +18,7 @@ from .utils.control_utils import ControlUtil
 from .utils.db_utils import DBUtils
 from .extensions import get_mode, get_effective_competition_mode
 from .utils.frp_utils import FrpUtils
+from .utils.labels_utils import LabelsUtils
 from .models import DynamicCheckChallenge, OwlContainers
 
 
@@ -154,13 +155,12 @@ def load(app):
                         return jsonify({})
 
                     lan_domain = str(user_id) + "-" + container.docker_id
+                    labels_obj = LabelsUtils.loads_labels(getattr(container, "labels", "{}") or "{}")
                     containers_data.append({
                         "port": container.port,
                         "remaining_time": timeout - (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - container.start_time).seconds,
                         "lan_domain": lan_domain,
-                        "conntype": container.conntype,
-                        "comment": container.comment,
-                        "ssh_username": (getattr(container, "ssh_username", "") if container.conntype == "ssh" else ""),
+                        "labels": labels_obj,
                     })
                 return jsonify({'success': True, 'type': 'redirect', 'ip': configs.get('frp_direct_ip_address', ""),
                                 'containers_data': containers_data})
