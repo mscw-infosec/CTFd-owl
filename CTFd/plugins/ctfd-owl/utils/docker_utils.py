@@ -9,6 +9,7 @@ import yaml
 
 from CTFd.models import Flags
 from .db_utils import DBUtils
+from .labels_utils import LabelsUtils
 from ..extensions import log
 from ..models import DynamicCheckChallenge, OwlContainers
 
@@ -66,28 +67,18 @@ class DockerUtils:
             compose_data: dict[str, Union[str, int, dict]] = yaml.safe_load(
                 open(sname + '/docker-compose.yml', 'r').read())
             for service in compose_data["services"].keys():
-                if "labels" in compose_data["services"][service] and \
-                        "owl.proxy=true" in compose_data["services"][service]["labels"]:
+                service_labels = compose_data["services"][service].get("labels")
+                owl_meta = LabelsUtils.parse_owl_metadata(service_labels)
+                if service_labels is not None and bool((owl_meta.get("proxy") or {}).get("enabled")) is True:
                     port = random.randint(min_port, max_port)
                     while port in ports_list or port in [x["port"] for x in ports]:
                         port = random.randint(min_port, max_port)
-                    conntype = ""
-                    comment = ""
-                    contport = 0
-                    for label in compose_data["services"][service]["labels"]:
-                        if label.startswith("owl.label.conntype"):
-                            conntype = label.split("=")[1]
-                        if label.startswith("owl.label.comment"):
-                            comment = label.split("=")[1]
-                        if label.startswith("owl.proxy.port"):
-                            contport = int(label.split("=")[1])
+                    labels_json = LabelsUtils.dumps_labels(owl_meta)
                     ports.append(
                         {
                             "service": service,
                             "port": port,
-                            "conntype": conntype,
-                            "comment": comment,
-                            "cont_port": contport,
+                            "labels": labels_json,
                         })
         except Exception as e:
             try:

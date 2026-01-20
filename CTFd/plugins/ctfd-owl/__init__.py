@@ -18,12 +18,17 @@ from .utils.control_utils import ControlUtil
 from .utils.db_utils import DBUtils
 from .extensions import get_mode, get_effective_competition_mode
 from .utils.frp_utils import FrpUtils
+from .utils.labels_utils import LabelsUtils
 from .models import DynamicCheckChallenge, OwlContainers
 
 
 def load(app):
     plugin_name = __name__.split('.')[-1]
     app.db.create_all()
+
+    # Best-effort schema sync for existing installs.
+    DBUtils.ensure_schema()
+    
     register_plugin_assets_directory(
         app, base_path=f"/plugins/{plugin_name}/assets",
         endpoint=f'plugins.{plugin_name}.assets'
@@ -150,12 +155,12 @@ def load(app):
                         return jsonify({})
 
                     lan_domain = str(user_id) + "-" + container.docker_id
+                    labels_obj = LabelsUtils.loads_labels(getattr(container, "labels", "{}") or "{}")
                     containers_data.append({
                         "port": container.port,
                         "remaining_time": timeout - (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - container.start_time).seconds,
                         "lan_domain": lan_domain,
-                        "conntype": container.conntype,
-                        "comment": container.comment,
+                        "labels": labels_obj,
                     })
                 return jsonify({'success': True, 'type': 'redirect', 'ip': configs.get('frp_direct_ip_address', ""),
                                 'containers_data': containers_data})
