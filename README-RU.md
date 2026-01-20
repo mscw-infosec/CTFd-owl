@@ -6,7 +6,7 @@
 2. Порты рандомизированы для каждого запуска.
 3. Поддерживаются режимы CTFd: индивидуальный (users) и командный (teams). В командном режиме есть два варианта (зависит от настройки Competition Mode): один инстанс на команду или по одному инстансу на каждого пользователя.
 4. Флаг задания может быть как статическим (plaintext, или проверка regex), так и динамическим.
-5. Флаг кладётся в переменную окружения FLAG при запуске `docker compose up`. Вы можете подтянуть его в нужный контейнер.
+5. Переменная окружения `FLAG` всегда прокидывается в контейнеры при старте: в статике это заданный флаг, в динамике — уникальный флаг для инстанса.
 6. Конфигурация контейнера, от комментариев до проксирования, происходит декларативно через лейблы Docker Compose.
 7. Поддержка разных типов сообщений(toasts, modals) о статусах контейнеров, поддержка как старых тем, основанных на core, так и новых.
 
@@ -18,8 +18,9 @@
 -   `owl.proxy.port=8080` - порт внутри контейнера, на который будет идти трафик (пр. 8080)
 -   `owl.label.conntype=nc` - тип подключения (http/https/nc/ssh/telnet), показывается как `(nc)` перед `ip:port` в карточке задания
 -   `owl.label.comment=My comment.` - показывается как `(My comment.)` на следующей строке после `ip:port` в карточке задания
--   `owl.label.ssh.username=ctf` - используется только когда `owl.label.conntype=ssh` (показывается как `ssh ctf@ip -p port` в карточке задания)
--   `owl.label.ssh.password=secret` - пароль для SSH (опционально, показывается в карточке задания если указан)
+-   `owl.ssh.username=ctf` - используется только когда `owl.label.conntype=ssh` (показывается как `ssh ctf@ip -p port` в карточке задания)
+-   `owl.ssh.password=secret` - пароль для SSH (опционально; игнорируется в UI если указан `owl.ssh.key`)
+-   `owl.ssh.key=id_rsa` - имя SSH-ключа (опционально; в UI имеет приоритет над паролем)
 
 Отображение данных для подключения изменены для `nc`, `telnet` и `ssh`.
 
@@ -49,10 +50,10 @@ networks:
 curl -fsSL https://get.docker.com -o get-docker.sh
 sh get-docker.sh
 
-# замените <workdir> на нужную вам директорию
+# Замените <workdir> на нужную вам директорию
 cd <workdir>
-git clone https://github.com/CTFd/CTFd.git
-git clone https://github.com/Thorgathis/CTFd-owl.git
+git clone https://github.com/CTFd/CTFd.git -b 3.7.7 # Рекомендованная версия, но вы можете обновиться.
+git clone https://github.com/mscw-infosec/CTFd-owl.git
 cp -r CTFd-owl/* CTFd
 mkdir -p /home/docker
 ```
@@ -115,9 +116,11 @@ transport.poolCount = 1
 
 ### Добавление задач
 
--   Пример обычной задачи приведён в `CTFd/plugins/ctfd-owl/source/sanity-task`. 
--   Пример задачи с динамическим флагом приведён в `CTFd/plugins/ctfd-owl/source/dynamic-task`. 
+-   Пример обычной задачи приведён в `CTFd/plugins/ctfd-owl/source/tasks/sanity-task`. 
+-   Пример задачи с динамическим флагом приведён в `CTFd/plugins/ctfd-owl/source/tasks/dynamic-task`. 
 -   Пример задачи с SSH приведён в `CTFd/plugins/ctfd-owl/source/tasks/ssh-task`.
+
+Во всех случаях контейнер получает `FLAG` автоматически (смотрите `FLAG=${FLAG}` в compose-файлах примеров).
 
 Вы можете создать свои задачи на их основе.
 

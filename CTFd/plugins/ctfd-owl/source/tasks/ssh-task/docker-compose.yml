@@ -13,8 +13,9 @@ services:
       - owl.proxy=true
       - owl.proxy.port=22
       - owl.label.conntype=ssh
-      - owl.label.ssh.username=ctf
-      - owl.label.ssh.password=secret
+      - owl.ssh.username=ctf
+      - owl.ssh.password=secret
+
 
 networks:
   net:

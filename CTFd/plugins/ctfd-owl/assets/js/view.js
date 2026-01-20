@@ -226,6 +226,7 @@ function loadInfo() {
                     const connComment = fields.comment || "";
                     const sshUsername = fields.ssh_username || "";
                     const sshPassword = fields.ssh_password || "";
+                    const sshKey = fields.ssh_key || "";
 
                     if (connComment !== "") {
                         comment = "<br/><a>(" + connComment + ")</a>";
@@ -247,9 +248,15 @@ function loadInfo() {
                         panel_html += i + 1 + ". " + conntype + '<a target="_blank" whited>telnet ' + response.ip + " " + container.port + "</a>" + comment + "<br/>";
                     } else if (connType === "ssh") {
                         const sshUser = sshUsername && sshUsername !== "" ? sshUsername : "USERNAME";
-                        panel_html += i + 1 + ". " + conntype + '<a target="_blank" whited>ssh ' + sshUser + "@" + response.ip + " -p " + container.port + "</a>";
-                        if (sshPassword && sshPassword !== "") {
-                            panel_html += "<br/>Password: <code>" + sshPassword + "</code>" ;
+                        if (sshKey && sshKey !== "") {
+                            panel_html +=
+                                i + 1 + ". " + conntype + '<a target="_blank" whited>ssh -i ' + sshKey +
+                                " " + sshUser + "@" + response.ip + " -p " + container.port + "</a>";
+                        } else {
+                            panel_html += i + 1 + ". " + conntype + '<a target="_blank" whited>ssh ' + sshUser + "@" + response.ip + " -p " + container.port + "</a>";
+                            if (sshPassword && sshPassword !== "") {
+                                panel_html += "<br/>Password: <code>" + sshPassword + "</code>";
+                            }
                         }
                         panel_html += comment + "<br/>";
                     } else {

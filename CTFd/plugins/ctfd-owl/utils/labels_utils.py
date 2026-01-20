@@ -4,13 +4,14 @@ import json
 from typing import Any, Mapping
 
 
-# Central place to extend supported owl.label.* keys.
+# Central place to extend supported OWL label keys.
 # Add a new entry here and it will automatically be parsed into `labels.fields`.
 OWL_LABEL_KEYS: dict[str, str] = {
     "conntype": "owl.label.conntype",
     "comment": "owl.label.comment",
-    "ssh_username": "owl.label.ssh.username",
-    "ssh_password": "owl.label.ssh.password",
+    "ssh_username": "owl.ssh.username",
+    "ssh_password": "owl.ssh.password",
+    "ssh_key": "owl.ssh.key",
 }
 
 
@@ -76,6 +77,7 @@ class LabelsUtils:
         if fields.get("conntype", "") != "ssh":
             fields["ssh_username"] = ""
             fields["ssh_password"] = ""
+            fields["ssh_key"] = ""
 
         # This object is what we store in labels.
         return {

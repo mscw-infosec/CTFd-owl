@@ -8,7 +8,7 @@ Russian version of this README is available [here](./README-RU.md).
 2. The port is randomized on each container startup.
 3. Adapted to "teams" and "users" modes. In "teams" mode there are two options (depends on Competition Mode): one shared instance per team or one instance per user.
 4. Both static (plaintext or regex) and dynamic flags are supported.
-5. FLAG variable exported from CTFd to environment when running `docker compose up` on challenge.
+5. `FLAG` env var is always exported into containers on startup: in static mode it is the configured flag, in dynamic mode it is a per-instance generated flag.
 6. Everything about container (including frp) should be configured using labels in docker-compose.
 7. Support for different types of messages (toasts, modals) about container statuses, support for both old core-based themes and new ones.
 
@@ -20,8 +20,9 @@ Proxied containers should have at least first two of these labels:
 -   `owl.proxy.port=8080` - container port that will be connected to FRP (ex. 8080)
 -   `owl.label.conntype=nc` - connection type (http/https/nc/ssh/telnet), will be shown as `(nc)` before container's `ip:port` in challenge card
 -   `owl.label.comment=My comment.` - will be shown as `(My comment.)` next line after container's `ip:port` in challenge card
--   `owl.label.ssh.username=ctf` - SSH username (used only when `conntype=ssh`, shown as `ssh ctf@ip -p port` in challenge card)
--   `owl.label.ssh.password=secret` - SSH password (optional, shown in challenge card when provided)
+-   `owl.ssh.username=ctf` - SSH username (used only when `conntype=ssh`, shown as `ssh ctf@ip -p port` in challenge card)
+-   `owl.ssh.password=secret` - SSH password (optional; ignored in UI if `owl.ssh.key` is provided)
+-   `owl.ssh.key=id_rsa` - SSH key name (optional; preferred over password in UI)
 
 The connection data display has been changed for `nc`, `telnet` and `ssh`.
 
@@ -53,8 +54,8 @@ sh get-docker.sh
 
 # replace <workdir> to your workdir
 cd <workdir>
-git clone https://github.com/CTFd/CTFd.git
-git clone https://github.com/Thorgathis/CTFd-owl.git
+git clone https://github.com/CTFd/CTFd.git -b 3.7.7 # Recommended version, but you can update.
+git clone https://github.com/mscw-infosec/CTFd-owl.git
 cp -r CTFd-owl/* CTFd
 mkdir -p /home/docker
 ```
@@ -117,9 +118,11 @@ transport.poolCount = 1
 
 ### Add Challenge
 
--   An example of a common task is given in the `CTFd/plugins/ctfd-owl/source/sanity-task`.
--   An example of a task with a dynamic flag is given in `CTFd/plugins/ctfd-owl/source/dynamic-task`.
+-   An example of a common task is given in the `CTFd/plugins/ctfd-owl/source/tasks/sanity-task`.
+-   An example of a task with a dynamic flag is given in `CTFd/plugins/ctfd-owl/source/tasks/dynamic-task`.
 -   An example of an SSH task is given in `CTFd/plugins/ctfd-owl/source/tasks/ssh-task`.
+
+In all cases the container receives `FLAG` automatically (see `FLAG=${FLAG}` in the example compose files).
 
 You can create your own tasks based on them.
 
