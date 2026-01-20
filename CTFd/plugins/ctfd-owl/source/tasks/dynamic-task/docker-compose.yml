@@ -1,0 +1,20 @@
+services:
+    service:
+        build: service
+        restart: always
+        expose:
+            - 1337
+        networks:
+            - net
+        environment:
+            - FLAG=${FLAG}
+        labels:
+            - owl.proxy=true
+            - owl.proxy.port=1337
+            - owl.label.conntype=http
+            - owl.label.comment=This is the main service.
+
+networks:
+    net:
+        external:
+            name: ctfd_frp_containers

@@ -1,9 +1,6 @@
 import datetime
 
-from CTFd.models import (
-    db,
-    Challenges,
-)
+from CTFd.models import db, Challenges
 
 
 class DynamicCheckChallenge(Challenges):
@@ -50,9 +47,9 @@ class OwlContainers(db.Model):
     renew_count = db.Column(db.Integer, nullable=False, default=0)
     flag = db.Column(db.String(128), nullable=False)
 
-    conntype = db.Column(db.String(32), default="")
-    comment = db.Column(db.String(128), default="")
-    contport = db.Column(db.Integer)
+    # Extra owl.label.* values for forward-compatible UI/logic (stored as JSON string).
+    # Kept as VARCHAR for portable defaults across SQLite/MySQL/Postgres.
+    labels = db.Column(db.String(2048), default="{}")
 
     # Relationships
     user = db.relationship("Users", foreign_keys="OwlContainers.user_id", lazy="select")

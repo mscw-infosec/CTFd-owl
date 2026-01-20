@@ -12,10 +12,8 @@
 <div class="form-group">
     <label for="value" class="control-label">Flag Type</label>
     <select class="form-control custom-select" name="flag_type">
-        <option value="dynamic" {% if challenge.flag_type==
-        "dynamic" %}selected{% endif %}>Dynamic</option>
-        <option value="static" {% if challenge.flag_type==
-        "static" %}selected{% endif %}>Static</option>
+        <option value="dynamic" {% if challenge.flag_type=="dynamic" %}selected{% endif %}>Dynamic</option>
+        <option value="static" {% if challenge.flag_type=="static" %}selected{% endif %}>Static</option>
     </select>
 </div>
 {% endblock %}

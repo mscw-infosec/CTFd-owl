@@ -1,0 +1,49 @@
+<div role="tabpanel" class="tab-pane config-section" id="notifications">
+	<form method="POST" autocomplete="off" class="w-100">
+		<div class="form-group">
+			<label>
+				User Notifications Mode
+				<small class="form-text text-muted">
+					How users see notifications in challenge view.
+				</small>
+			</label>
+			<select class="form-control" id="owl_notifications_mode" name="owl_notifications_mode">
+				<option value="toast" {% if configs.get("owl_notifications_mode", "toast") == "toast" %}selected{% endif %}>Toasts</option>
+				<option value="modal" {% if configs.get("owl_notifications_mode", "toast") == "modal" %}selected{% endif %}>Modals</option>
+			</select>
+		</div>
+
+		<div class="form-group">
+			<label>
+				Toast Strategy
+				<small class="form-text text-muted">
+					Toast implementation to use. Only applicable if "User Notifications Mode" is set to "Toasts".
+				</small>
+			</label>
+			<select class="form-control" id="owl_toast_strategy" name="owl_toast_strategy" {% if configs.get("owl_notifications_mode", "toast") != "toast" %}disabled{% endif %}>
+				<option value="auto" {% if configs.get("owl_toast_strategy", "auto") == "auto" %}selected{% endif %}>Auto</option>
+				<option value="basicToasts" {% if configs.get("owl_toast_strategy", "auto") == "basicToasts" %}selected{% endif %}>Only basicToasts (Toasts used in core-beta themes)</option>
+				<option value="notifyToasts" {% if configs.get("owl_toast_strategy", "auto") == "notifyToasts" %}selected{% endif %}>Only notifyToasts (Core themes toasts)</option>
+				<option value="bootstrapToasts" {% if configs.get("owl_toast_strategy", "auto") == "bootstrapToasts" %}selected{% endif %}>Only bootstrapToasts (Manual toasts)</option>
+			</select>
+		</div>
+
+		<button type="submit" class="btn btn-md btn-primary float-right">Update</button>
+	</form>
+
+	<script>
+		(() => {
+			const notificationsModeSelect = document.getElementById('owl_notifications_mode');
+			const toastStrategySelect = document.getElementById('owl_toast_strategy');
+			if (!notificationsModeSelect || !toastStrategySelect) return;
+
+			const syncToastStrategyState = () => {
+				const isToast = notificationsModeSelect.value === 'toast';
+				toastStrategySelect.disabled = !isToast;
+			};
+
+			syncToastStrategyState();
+			notificationsModeSelect.addEventListener('change', syncToastStrategyState);
+		})();
+	</script>
+</div>

@@ -6,7 +6,7 @@ from sqlalchemy.sql import and_
 from CTFd.models import Challenges, Users
 from .db_utils import DBUtils
 from .docker_utils import DockerUtils
-from .extensions import log
+from ..extensions import log
 
 
 class ControlUtil:
@@ -22,8 +22,7 @@ class ControlUtil:
                 )
                 DBUtils.new_container(user_id, challenge_id, flag=rq[2], port=container["port"], docker_id=rq[0],
                                       ip=rq[3], name=f'{prefix.lower()}_user{user_id}_{rq[4]}-{container["service"]}-1',
-                                      conntype=container["conntype"], comment=container["comment"],
-                                      contport=container["cont_port"])
+                                      labels=container.get("labels", "{}"))
             return True
         else:
             return rq

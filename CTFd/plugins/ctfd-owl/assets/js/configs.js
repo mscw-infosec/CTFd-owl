@@ -21,10 +21,10 @@ function update_configs(event) {
         method: "PATCH",
         credentials: "same-origin",
         headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
+            Accept: "application/json",
+            "Content-Type": "application/json",
         },
-        body: JSON.stringify(params)
+        body: JSON.stringify(params),
     })
         .then(function (response) {
             return response.json();

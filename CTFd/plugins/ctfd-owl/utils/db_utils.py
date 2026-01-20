@@ -1,12 +1,28 @@
 import datetime
 
-from CTFd.models import (
-    db
-)
-from .models import OwlConfigs, OwlContainers
+from CTFd.models import db
+from sqlalchemy import inspect, text
+
+from ..models import OwlConfigs, OwlContainers
 
 
 class DBUtils:
+    @staticmethod
+    def ensure_schema():
+        """Ensure plugin tables have expected columns.
+
+        Note: `db.create_all()` does not add new columns to existing tables.
+        This performs a small, best-effort migration for backward compatibility.
+        """
+        try:
+            inspector = inspect(db.engine)
+            cols = {c["name"] for c in inspector.get_columns("owl_containers")}
+            if "labels" not in cols:
+                ddl = "ALTER TABLE owl_containers ADD COLUMN labels VARCHAR(2048) DEFAULT '{}'"
+                with db.engine.begin() as conn:
+                    conn.execute(text(ddl))
+        except Exception:
+            pass
     @staticmethod
     def get_all_configs():
         configs = OwlConfigs.query.all()
@@ -34,10 +50,21 @@ class DBUtils:
         db.session.close()
 
     @staticmethod
-    def new_container(user_id, challenge_id, flag, docker_id, port=0, ip="", name="", conntype="", comment="",
-                      contport=0):
+    def new_container(
+        user_id,
+        challenge_id,
+        flag,
+        docker_id,
+        port=0,
+        ip="",
+        name="",
+        labels="{}",
+    ):
+        """Create a new container DB record."""
         container = OwlContainers(user_id=user_id, challenge_id=challenge_id, flag=flag, docker_id=docker_id, port=port,
-                                  ip=ip, name=name, conntype=conntype, comment=comment, contport=contport, start_time=datetime.datetime.now(datetime.timezone.utc))
+                                  ip=ip, name=name,
+                                  labels=labels,
+                                  start_time=datetime.datetime.now(datetime.timezone.utc))
         db.session.add(container)
         db.session.commit()
         db.session.close()
@@ -45,6 +72,7 @@ class DBUtils:
 
     @staticmethod
     def get_current_containers(user_id):
+        """Get all containers for a owner user_id."""
         q = db.session.query(OwlContainers)
         q = q.filter(OwlContainers.user_id == user_id)
         records = q.all()
@@ -55,6 +83,7 @@ class DBUtils:
 
     @staticmethod
     def get_container_by_port(port):
+        """Get container for a port."""
         q = db.session.query(OwlContainers)
         q = q.filter(OwlContainers.port == port)
         records = q.all()
@@ -65,6 +94,7 @@ class DBUtils:
 
     @staticmethod
     def remove_current_container(user_id):
+        """Remove container for a owner user_id."""
         q = db.session.query(OwlContainers)
         q = q.filter(OwlContainers.user_id == user_id)
         # records = q.all()
@@ -77,6 +107,7 @@ class DBUtils:
 
     @staticmethod
     def renew_current_container(user_id):
+        """Extend container lifetime and increment renew_count."""
         q = db.session.query(OwlContainers)
         q = q.filter(OwlContainers.user_id == user_id)
         # q = q.filter(OwlContainers.challenge_id == challenge_id)
@@ -99,6 +130,7 @@ class DBUtils:
 
     @staticmethod
     def get_all_expired_container():
+        """Get all expired containers."""
         configs = DBUtils.get_all_configs()
         timeout = int(configs.get("docker_timeout", "3600"))
 
@@ -108,6 +140,7 @@ class DBUtils:
 
     @staticmethod
     def get_all_alive_container():
+        """Get all alive containers."""
         configs = DBUtils.get_all_configs()
         timeout = int(configs.get("docker_timeout", "3600"))
 

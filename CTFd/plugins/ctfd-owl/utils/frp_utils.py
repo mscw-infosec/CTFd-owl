@@ -1,8 +1,9 @@
 import requests
 
 from .db_utils import DBUtils
-from .extensions import log
-from .models import DynamicCheckChallenge, OwlContainers
+from .labels_utils import LabelsUtils
+from ..extensions import log
+from ..models import DynamicCheckChallenge, OwlContainers
 
 
 class FrpUtils:
@@ -30,7 +31,16 @@ class FrpUtils:
             dynamic_docker_challenge = DynamicCheckChallenge.query \
                 .filter(DynamicCheckChallenge.id == c.challenge_id) \
                 .first_or_404()
-            redirect_port = dynamic_docker_challenge.redirect_port if c.contport == 0 else c.contport
+            labels_obj = LabelsUtils.loads_labels(getattr(c, "labels", "{}") or "{}")
+            proxy_port: int | None = None
+            proxy = labels_obj.get("proxy")
+            if isinstance(proxy, dict):
+                port = proxy.get("port")
+                try:
+                    proxy_port = int(port) if port is not None else None
+                except Exception:
+                    proxy_port = None
+            redirect_port = dynamic_docker_challenge.redirect_port if (proxy_port or 0) == 0 else int(proxy_port)
             container_service_local_ip = c.name
             output += direct_template % (
                 container_service_local_ip,
@@ -56,7 +66,7 @@ class FrpUtils:
         except Exception as e:
             import traceback
             log("owl",
-                '[ERROR]frp reload: {err}',
+                '[ERROR] frp reload: {err}',
                 err=traceback.format_exc()
                 )
             pass
