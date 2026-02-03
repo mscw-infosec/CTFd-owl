@@ -16,6 +16,7 @@ from CTFd.models import (
 )
 from CTFd.plugins.challenges import BaseChallenge
 from CTFd.plugins.flags import get_flag_class, FlagException
+from CTFd.utils.user import get_current_user as ctfd_get_current_user
 from CTFd.utils import get_config
 from CTFd.utils.modes import get_model
 from CTFd.utils.uploads import delete_file
@@ -129,7 +130,7 @@ class DynamicCheckValueChallenge(BaseChallenge):
         chal = DynamicCheckChallenge.query.filter_by(id=challenge.id).first()
         data = request.form or request.get_json()
         submission = data["submission"].strip()
-        user = current_user.get_current_user()
+        user = ctfd_get_current_user()
         user_id = user.id
 
         if chal.flag_type == 'static':
