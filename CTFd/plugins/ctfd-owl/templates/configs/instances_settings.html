@@ -1,0 +1,65 @@
+<div role="tabpanel" class="tab-pane config-section active" id="instances">
+	<form method="POST" autocomplete="off" class="w-100">
+		{% set ctfd_is_teams = (ctfd_user_mode|default('users')) == 'teams' %}
+		{% set instances_visibility = configs.get('instances_visibility', 'launcher_only') %}
+		{% if ctfd_is_teams %}
+			<div class="form-group">
+				<label>
+					Instance visibility
+					<small class="form-text text-muted">
+						Defines who can access/manage the same instance.
+					</small>
+				</label>
+				<select class="form-control" id="instances_visibility" name="instances_visibility">
+					<option value="launcher_only" {% if instances_visibility == "launcher_only" %}selected{% endif %}>Only launcher can access</option>
+					<option value="team_members" {% if instances_visibility == "team_members" %}selected{% endif %}>All team members can access</option>
+				</select>
+			</div>
+		{% endif %}
+
+		<div class="form-group">
+			<label>
+				Instances menu
+				<small class="form-text text-muted">
+					Shows the bottom-left button with a list of running instances.
+				</small>
+			</label>
+			<input type="hidden" name="instances_menu_enabled" value="false" />
+			<div class="form-check">
+				<input
+					type="checkbox"
+					class="form-check-input"
+					id="instances_menu_enabled"
+					name="instances_menu_enabled"
+					value="true"
+					{% if configs.get('instances_menu_enabled', 'true') in [True, 'true', 'True', '1', 1] %}checked{% endif %}
+				>
+				<label class="form-check-label" for="instances_menu_enabled">Enable</label>
+			</div>
+		</div>
+
+		<div class="form-group">
+			<label>
+				Max Instances Per User
+				<small class="form-text text-muted">
+					Maximum number of alive instances per owner (default: 1, recommended: 1).
+				</small>
+			</label>
+			<input type="number" min="1" class="form-control" id="instances_max_per_user" name="instances_max_per_user" value="{{ configs.get('instances_max_per_user', '1') }}">
+		</div>
+
+		{% if ctfd_is_teams %}
+			<div class="form-group">
+				<label>
+					Max Instances Per Team
+					<small class="form-text text-muted">
+						Maximum number of alive instances across the whole team. Default: <code>auto</code> (= team size).
+					</small>
+				</label>
+				<input type="text" class="form-control" id="instances_max_per_team" name="instances_max_per_team" value="{{ configs.get('instances_max_per_team', 'auto') }}">
+			</div>
+		{% endif %}
+
+		<button type="submit" class="btn btn-md btn-primary float-right">Update</button>
+	</form>
+</div>

@@ -1,9 +1,11 @@
 import datetime
 
 from CTFd.models import db
+from sqlalchemy import distinct
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import inspect, text
 
-from ..models import OwlConfigs, OwlContainers
+from ..models import OwlConfigs, OwlContainers, OwlLaunchLocks
 
 
 class DBUtils:
@@ -82,6 +84,17 @@ class DBUtils:
         return records
 
     @staticmethod
+    def get_current_containers_for_challenge(user_id, challenge_id):
+        """Get all containers (service rows) for a given owner and challenge."""
+        q = db.session.query(OwlContainers)
+        q = q.filter(OwlContainers.user_id == user_id)
+        q = q.filter(OwlContainers.challenge_id == challenge_id)
+        records = q.all()
+        if len(records) == 0:
+            return None
+        return records
+
+    @staticmethod
     def get_container_by_port(port):
         """Get container for a port."""
         q = db.session.query(OwlContainers)
@@ -101,6 +114,16 @@ class DBUtils:
         # for r in records:
         #     pass
 
+        q.delete()
+        db.session.commit()
+        db.session.close()
+
+    @staticmethod
+    def remove_current_container_for_challenge(user_id, challenge_id):
+        """Remove container rows for a given owner and challenge."""
+        q = db.session.query(OwlContainers)
+        q = q.filter(OwlContainers.user_id == user_id)
+        q = q.filter(OwlContainers.challenge_id == challenge_id)
         q.delete()
         db.session.commit()
         db.session.close()
@@ -127,6 +150,86 @@ class DBUtils:
             r.renew_count += 1
         db.session.commit()
         db.session.close()
+
+    @staticmethod
+    def renew_current_container_for_challenge(user_id, challenge_id):
+        """Extend container lifetime for a specific challenge and increment renew_count."""
+        q = db.session.query(OwlContainers)
+        q = q.filter(OwlContainers.user_id == user_id)
+        q = q.filter(OwlContainers.challenge_id == challenge_id)
+        records = q.all()
+        if len(records) == 0:
+            return
+
+        configs = DBUtils.get_all_configs()
+        timeout = int(configs.get("docker_timeout", "3600"))
+
+        for r in records:
+            r.start_time = r.start_time + datetime.timedelta(seconds=timeout)
+
+            if r.start_time > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None):
+                r.start_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+            r.renew_count += 1
+        db.session.commit()
+        db.session.close()
+
+    @staticmethod
+    def get_alive_instance_count_for_user(user_id):
+        """Count alive instances for an owner, by distinct challenge_id."""
+        configs = DBUtils.get_all_configs()
+        timeout = int(configs.get("docker_timeout", "3600"))
+        threshold = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(seconds=timeout)
+
+        q = db.session.query(distinct(OwlContainers.challenge_id))
+        q = q.filter(OwlContainers.user_id == user_id)
+        q = q.filter(OwlContainers.start_time >= threshold)
+        # SQLAlchemy emits SELECT DISTINCT; count() works across backends.
+        return q.count()
+
+    @staticmethod
+    def get_alive_instance_count_for_team(user_ids: list[int]):
+        """Count alive instances for a team, by distinct (user_id, challenge_id)."""
+        if not user_ids:
+            return 0
+
+        configs = DBUtils.get_all_configs()
+        timeout = int(configs.get("docker_timeout", "3600"))
+        threshold = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(seconds=timeout)
+
+        q = db.session.query(OwlContainers.user_id, OwlContainers.challenge_id).distinct()
+        q = q.filter(OwlContainers.user_id.in_(user_ids))
+        q = q.filter(OwlContainers.start_time >= threshold)
+        return q.count()
+
+    @staticmethod
+    def acquire_launch_lock(user_id, challenge_id=None, ttl_seconds=120):
+        """Acquire a best-effort launch lock for a given owner."""
+        now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+        threshold = now - datetime.timedelta(seconds=int(ttl_seconds))
+
+        try:
+            # Remove expired lock if any.
+            db.session.query(OwlLaunchLocks).filter(OwlLaunchLocks.start_time < threshold).delete()
+            db.session.commit()
+
+            lock = OwlLaunchLocks(user_id=user_id, challenge_id=challenge_id, start_time=now)
+            db.session.add(lock)
+            db.session.commit()
+            return True
+        except IntegrityError:
+            db.session.rollback()
+            return False
+        finally:
+            db.session.close()
+
+    @staticmethod
+    def release_launch_lock(user_id):
+        try:
+            db.session.query(OwlLaunchLocks).filter(OwlLaunchLocks.user_id == user_id).delete()
+            db.session.commit()
+        finally:
+            db.session.close()
 
     @staticmethod
     def get_all_expired_container():
