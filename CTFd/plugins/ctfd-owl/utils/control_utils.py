@@ -38,12 +38,30 @@ class ControlUtil:
             return False
 
     @staticmethod
+    def destroy_container_for_challenge(user_id, challenge_id):
+        try:
+            DockerUtils.remove_current_docker_container(user_id=user_id, challenge_id=challenge_id)
+            return True
+        except Exception:
+            import traceback
+            print(traceback.format_exc())
+            return False
+
+    @staticmethod
     def expired_container(user_id):
         DBUtils.renew_current_container(user_id=user_id)
 
     @staticmethod
+    def expired_container_for_challenge(user_id, challenge_id):
+        DBUtils.renew_current_container_for_challenge(user_id=user_id, challenge_id=challenge_id)
+
+    @staticmethod
     def get_container(user_id):
         return DBUtils.get_current_containers(user_id=user_id)
+
+    @staticmethod
+    def get_container_for_challenge(user_id, challenge_id):
+        return DBUtils.get_current_containers_for_challenge(user_id=user_id, challenge_id=challenge_id)
 
     @staticmethod
     def check_challenge(challenge_id, user_id):

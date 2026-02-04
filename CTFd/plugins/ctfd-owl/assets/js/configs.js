@@ -8,12 +8,26 @@ function update_configs(event) {
     var params = {};
 
     Object.keys(obj).forEach(function (x) {
-        if (obj[x] === "true") {
+        let v = obj[x];
+
+        // When multiple inputs share the same name (e.g. hidden=false + checkbox=true),
+        if (Array.isArray(v)) {
+            // If any value is "true", treat as true; else if any is "false", treat as false; else take last.
+            if (v.includes("true")) {
+                v = "true";
+            } else if (v.includes("false")) {
+                v = "false";
+            } else {
+                v = v.length ? v[v.length - 1] : "";
+            }
+        }
+
+        if (v === "true") {
             params[x] = true;
-        } else if (obj[x] === "false") {
+        } else if (v === "false") {
             params[x] = false;
         } else {
-            params[x] = obj[x];
+            params[x] = v;
         }
     });
 

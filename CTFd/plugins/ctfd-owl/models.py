@@ -59,3 +59,14 @@ class OwlContainers(db.Model):
 
     def __init__(self, *args, **kwargs):
         super(OwlContainers, self).__init__(**kwargs)
+
+
+class OwlLaunchLocks(db.Model):
+    """A short-lived lock to prevent concurrent instance launches per owner."""
+
+    user_id = db.Column(db.Integer, primary_key=True)
+    challenge_id = db.Column(db.Integer, nullable=True)
+    start_time = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
+
+    def __init__(self, *args, **kwargs):
+        super(OwlLaunchLocks, self).__init__(**kwargs)

@@ -16,10 +16,12 @@ from CTFd.models import (
 )
 from CTFd.plugins.challenges import BaseChallenge
 from CTFd.plugins.flags import get_flag_class, FlagException
+from CTFd.utils.user import get_current_user as ctfd_get_current_user
+from CTFd.utils import get_config
 from CTFd.utils.modes import get_model
 from CTFd.utils.uploads import delete_file
 from CTFd.utils.user import get_ip
-from .extensions import get_mode
+from .utils.db_utils import DBUtils
 from .models import DynamicCheckChallenge, OwlContainers
 
 
@@ -111,7 +113,7 @@ class DynamicCheckValueChallenge(BaseChallenge):
         Fails.query.filter_by(challenge_id=challenge.id).delete()
         Solves.query.filter_by(challenge_id=challenge.id).delete()
         Flags.query.filter_by(challenge_id=challenge.id).delete()
-        OwlContainers.query.filter_by(id=challenge.id).delete()
+        OwlContainers.query.filter_by(challenge_id=challenge.id).delete()
         files = ChallengeFiles.query.filter_by(challenge_id=challenge.id).all()
         for f in files:
             delete_file(f.id)
@@ -128,7 +130,8 @@ class DynamicCheckValueChallenge(BaseChallenge):
         chal = DynamicCheckChallenge.query.filter_by(id=challenge.id).first()
         data = request.form or request.get_json()
         submission = data["submission"].strip()
-        user_id = get_mode()
+        user = ctfd_get_current_user()
+        user_id = user.id
 
         if chal.flag_type == 'static':
             flags: list[Flags] = Flags.query.filter_by(challenge_id=challenge.id).all()
@@ -144,6 +147,8 @@ class DynamicCheckValueChallenge(BaseChallenge):
         subflag = OwlContainers.query.filter_by(flag=submission).first()
 
         if subflag:
+            if int(subflag.challenge_id) != int(challenge.id):
+                return False, "Incorrect Challenge"
             try:
                 fflag = container.flag
             except Exception as e:
