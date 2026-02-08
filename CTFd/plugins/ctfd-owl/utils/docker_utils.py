@@ -169,16 +169,24 @@ class DockerUtils:
             return str(e.stderr.decode())
 
     @staticmethod
-    def remove_current_docker_container(user_id, is_retry=False):
+    def remove_current_docker_container(user_id, challenge_id=None, is_retry=False):
         configs = DBUtils.get_all_configs()
-        containers = DBUtils.get_current_containers(user_id=user_id)
+        if challenge_id is None:
+            containers = DBUtils.get_current_containers(user_id=user_id)
+        else:
+            containers = DBUtils.get_current_containers_for_challenge(user_id=user_id, challenge_id=challenge_id)
 
         if containers is None:
             return False
         try:
-            for container in containers:
-                DockerUtils.down_docker_compose(user_id, challenge_id=container.challenge_id)
+            challenge_ids = sorted({c.challenge_id for c in containers})
+            for cid in challenge_ids:
+                DockerUtils.down_docker_compose(user_id, challenge_id=cid)
+
+            if challenge_id is None:
                 DBUtils.remove_current_container(user_id)
+            else:
+                DBUtils.remove_current_container_for_challenge(user_id=user_id, challenge_id=challenge_id)
             return True
         except Exception as e:
             import traceback

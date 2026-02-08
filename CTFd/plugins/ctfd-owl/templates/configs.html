@@ -11,12 +11,13 @@
         <div class="col-md-3">
             <ul class="nav nav-pills flex-column">
                 <li class="nav-item">
-                    <a class="nav-link rounded-0 active" href="#docker" role="tab" data-toggle="tab">Docker Settings</a>
+                    <a class="nav-link rounded-0 active" href="#instances" role="tab" data-toggle="tab">Instance Settings</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link rounded-0" href="#notifications" role="tab" data-toggle="tab"
-                        >Notifications Settings</a
-                    >
+                    <a class="nav-link rounded-0" href="#docker" role="tab" data-toggle="tab">Docker Settings</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-0" href="#notifications" role="tab" data-toggle="tab">Notifications Settings</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link rounded-0" href="#frp" role="tab" data-toggle="tab">FRP Settings</a>
@@ -41,8 +42,10 @@
             {% endfor %}
 
             <div class="tab-content">
-                {% include "configs/docker_settings.html" %} {% include "configs/notifications_settings.html" %} {% include
-                "configs/frp_settings.html" %}
+                {% include "configs/instances_settings.html" %}
+                {% include "configs/docker_settings.html" %}
+                {% include "configs/notifications_settings.html" %}
+                {% include "configs/frp_settings.html" %}
             </div>
         </div>
     </div>

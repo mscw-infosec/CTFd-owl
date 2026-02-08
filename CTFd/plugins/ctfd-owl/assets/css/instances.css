@@ -1,0 +1,86 @@
+#owl-instances-fab {
+    position: fixed;
+    left: 18px;
+    bottom: 18px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #343a40;
+    color: #fff;
+    border: none;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.72;
+    transition:
+        opacity 120ms ease,
+        filter 120ms ease;
+}
+
+#owl-instances-fab:hover {
+    filter: brightness(1.06);
+    opacity: 0.92;
+}
+
+#owl-instances-fab:active {
+    transform: translateY(1px);
+}
+
+#owl-instances-fab span {
+    font-size: 24px;
+    line-height: 1;
+}
+
+#owl-instances-modal .card {
+    border-color: #c9cacc;
+    border-width: 1px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+#owl-instances-modal .owl-instances-grid {
+    padding: 0.5rem;
+}
+
+/* Bootstrap 4 (core) fallback: no `g-*` utilities, so we emulate gutters/spacings.
+   core-beta uses BS5 and has `data-bs-theme` on <html>, so these rules won't apply there. */
+html:not([data-bs-theme]) #owl-instances-modal .owl-instances-grid .row {
+    margin-left: -1rem;
+    margin-right: -1rem;
+}
+
+html:not([data-bs-theme]) #owl-instances-modal .owl-instance-col {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-bottom: 2rem;
+}
+
+#owl-instances-modal .modal-footer {
+    padding: 1.25rem 1.5rem;
+}
+
+#owl-instances-modal .owl-actions {
+    gap: 0.5rem;
+}
+
+#owl-instances-modal .owl-service {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+#owl-instances-modal .owl-service a {
+    color: inherit;
+    text-decoration: none;
+}
+
+#owl-instances-modal .owl-service a:hover {
+    text-decoration: underline;
+}
+
+#owl-instances-modal .owl-remaining {
+    font-variant-numeric: tabular-nums;
+}

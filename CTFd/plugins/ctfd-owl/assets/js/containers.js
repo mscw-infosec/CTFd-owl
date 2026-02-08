@@ -45,6 +45,19 @@ async function delete_container(user_id) {
     return response;
 }
 
+async function delete_container_by_id(container_id) {
+    let response = await CTFd.fetch("/plugins/ctfd-owl/admin/containers?container_id=" + container_id, {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+        },
+    });
+    response = await response.json();
+    return response;
+}
+
 // Renew containers for a given user id.
 async function renew_container(user_id) {
     let response = await CTFd.fetch("/plugins/ctfd-owl/admin/containers?user_id=" + user_id, {
@@ -59,12 +72,24 @@ async function renew_container(user_id) {
     return response;
 }
 
+async function renew_container_by_id(container_id) {
+    let response = await CTFd.fetch("/plugins/ctfd-owl/admin/containers?container_id=" + container_id, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+        },
+    });
+    response = await response.json();
+    return response;
+}
+
 $(".delete-container").click(function (e) {
     e.preventDefault();
     var container_id = $(this).attr("container-id");
-    var user_id = $(this).attr("user-id");
 
-    delete_container(user_id)
+    delete_container_by_id(container_id)
         .then(async (response) => {
             if (!response?.success) {
                 await window.owlShowModal({
@@ -90,9 +115,8 @@ $(".delete-container").click(function (e) {
 $(".renew-container").click(function (e) {
     e.preventDefault();
     var container_id = $(this).attr("container-id");
-    var user_id = $(this).attr("user-id");
 
-    renew_container(user_id)
+    renew_container_by_id(container_id)
         .then(async (response) => {
             if (!response?.success) {
                 await window.owlShowModal({
@@ -116,11 +140,11 @@ $(".renew-container").click(function (e) {
 });
 
 $("#containers-renew-button").click(function (e) {
-    let users = $("input[data-user-id]:checked").map(function () {
-        return $(this).data("user-id");
+    let containers = $("input[data-container-id]:checked").map(function () {
+        return $(this).data("container-id");
     });
 
-    Promise.all(users.toArray().map((user) => renew_container(user)))
+    Promise.all(containers.toArray().map((container_id) => renew_container_by_id(container_id)))
         .then(async (results) => {
             const failed = results?.some((r) => !r?.success);
             if (failed) {
@@ -145,11 +169,11 @@ $("#containers-renew-button").click(function (e) {
 });
 
 $("#containers-delete-button").click(function (e) {
-    let users = $("input[data-user-id]:checked").map(function () {
-        return $(this).data("user-id");
+    let containers = $("input[data-container-id]:checked").map(function () {
+        return $(this).data("container-id");
     });
 
-    Promise.all(users.toArray().map((user) => delete_container(user)))
+    Promise.all(containers.toArray().map((container_id) => delete_container_by_id(container_id)))
         .then(async (results) => {
             const failed = results?.some((r) => !r?.success);
             if (failed) {

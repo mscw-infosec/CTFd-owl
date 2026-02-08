@@ -107,9 +107,7 @@ function owlShowModalSafe({ title, body, buttonText, buttonClass, variant, delay
 }
 
 CTFd._internal.challenge.renderer = null;
-
 CTFd._internal.challenge.preRender = function () {};
-
 CTFd._internal.challenge.render = null;
 
 CTFd._internal.challenge.postRender = function () {
@@ -194,6 +192,7 @@ function loadInfo() {
             }
             console.log(response);
             if (response.success === false) {
+                resetOwlTimer();
                 CTFd.lib
                     .$("#owl-panel")
                     .html(
@@ -203,6 +202,7 @@ function loadInfo() {
                             "</h6>"
                     );
             } else if (response.containers_data === undefined || response.containers_data[0].remaining_time === undefined) {
+                resetOwlTimer();
                 CTFd.lib
                     .$("#owl-panel")
                     .html(
@@ -210,11 +210,39 @@ function loadInfo() {
                             '<button type="button" class="btn btn-primary card-link" id="owl-button-boot" onclick="CTFd._internal.challenge.boot()">Launch</button>'
                     );
             } else {
+                if (response.ip) {
+                    window.owl_last_frp_ip = response.ip;
+                }
+                const countdownClass = response.effective_mode === "teams" ? "card-subtitle mb-0 text-muted" : "card-subtitle mb-2 text-muted";
                 var panel_html =
                     '<h5 class="card-title">Instance Info</h5><hr>' +
-                    '<h6 class="card-subtitle mb-2 text-muted" id="owl-challenge-count-down">Remaining Time: ' +
+                    '<h6 class="' +
+                    countdownClass +
+                    '" id="owl-challenge-count-down">Remaining Time: ' +
                     response.containers_data[0].remaining_time +
                     "s</h6>";
+
+                // Shared instances metadata.
+                window.owl_manage_owner_user_id = response.manage_owner_user_id;
+
+                // Show who launched only in team visibility (All team members).
+                try {
+                    if (response.effective_mode === "teams") {
+                        let ownerHtml = "";
+                        if (response.owner && response.owner.url && response.owner.name) {
+                            ownerHtml = '<a class="text-muted" href="' + response.owner.url + '" target="_blank">' + response.owner.name + "</a>";
+                        } else if (Array.isArray(response.owners) && response.owners.length > 0) {
+                            ownerHtml = response.owners
+                                .map((o) => '<a class="text-muted" href="' + o.url + '" target="_blank">' + o.name + "</a>")
+                                .join(", ");
+                        }
+                        if (ownerHtml) {
+                            panel_html += '<div class="mb-2 text-muted">Launched by: ' + ownerHtml + "</div>";
+                        }
+                    }
+                } catch (_e) {
+                    // ignore
+                }
                 panel_html += '<p class="card-text">Services: <br/>';
                 response.containers_data.forEach((container, i) => {
                     let comment = "";
@@ -250,8 +278,7 @@ function loadInfo() {
                         const sshUser = sshUsername && sshUsername !== "" ? sshUsername : "USERNAME";
                         if (sshKey && sshKey !== "") {
                             panel_html +=
-                                i + 1 + ". " + conntype + '<a target="_blank" whited>ssh -i ' + sshKey +
-                                " " + sshUser + "@" + response.ip + " -p " + container.port + "</a>";
+                                i + 1 + ". " + conntype + '<a target="_blank" whited>ssh -i ' + sshKey + " " + sshUser + "@" + response.ip + " -p " + container.port + "</a>";
                         } else {
                             panel_html += i + 1 + ". " + conntype + '<a target="_blank" whited>ssh ' + sshUser + "@" + response.ip + " -p " + container.port + "</a>";
                             if (sshPassword && sshPassword !== "") {
@@ -260,10 +287,12 @@ function loadInfo() {
                         }
                         panel_html += comment + "<br/>";
                     } else {
-                        panel_html += i + 1 + ". " + conntype + '<a href="' + proto + "//" + response.ip + ":" + container.port + '" target="_blank">' + response.ip + ":" + container.port + "</a>" + comment + "<br/>";
+                        panel_html +=
+                            i + 1 + ". " + conntype + '<a href="' + proto + "//" + response.ip + ":" + container.port + '" target="_blank">' + response.ip + ":" + container.port + "</a>" + comment + "<br/>";
                     }
                 });
                 panel_html += "</p>";
+
                 panel_html +=
                     '<button type="button" class="btn btn-danger card-link" id="owl-button-destroy" onclick="CTFd._internal.challenge.destroy()">Destroy</button>' +
                     '<button type="button" class="btn btn-success card-link" id="owl-button-renew" onclick="CTFd._internal.challenge.renew()">Renew</button>';
@@ -274,11 +303,34 @@ function loadInfo() {
                     window.t = undefined;
                 }
 
+                let remainingSeconds = parseInt(response.containers_data[0].remaining_time);
+                if (isNaN(remainingSeconds)) {
+                    remainingSeconds = 0;
+                }
+
+                let syncTicks = 0;
+
                 function showAuto() {
-                    const origin = CTFd.lib.$("#owl-challenge-count-down")[0].innerHTML;
-                    const second = parseInt(origin.split(": ")[1].split("s")[0]) - 1;
-                    CTFd.lib.$("#owl-challenge-count-down")[0].innerHTML = "Remaining Time: " + second + "s";
-                    if (second < 0) {
+                    const el = CTFd.lib.$("#owl-challenge-count-down")[0];
+                    if (!el) {
+                        // DOM changed (e.g. challenge modal closed, or panel rerendered). Stop ticking.
+                        resetOwlTimer();
+                        return;
+                    }
+
+                    remainingSeconds -= 1;
+                    el.innerHTML = "Remaining Time: " + remainingSeconds + "s";
+
+                    syncTicks += 1;
+                    if (syncTicks >= 60) {
+                        // Resync with server once per minute to avoid client drift.
+                        resetOwlTimer();
+                        loadInfo();
+                        return;
+                    }
+
+                    if (remainingSeconds < 0) {
+                        resetOwlTimer();
                         loadInfo();
                     }
                 }
@@ -289,8 +341,8 @@ function loadInfo() {
 }
 
 function stopShowAuto() {
-    // 窗口关闭时停止循环
-    CTFd.lib.$("#challenge-window").on("hide.bs.modal", function (event) {
+    // Stop ticking when challenge modal closes.
+    CTFd.lib.$("#challenge-window").on("hide.bs.modal", function () {
         clearInterval(window.t);
         window.t = undefined;
     });
@@ -301,6 +353,10 @@ CTFd._internal.challenge.destroy = function () {
     var target = "/plugins/ctfd-owl/container?challenge_id={challenge_id}";
     target = target.replace("{challenge_id}", challenge_id);
     var params = {};
+
+    if (window.owl_manage_owner_user_id !== undefined && window.owl_manage_owner_user_id !== null) {
+        target += "&owner_user_id=" + encodeURIComponent(window.owl_manage_owner_user_id);
+    }
 
     CTFd.lib.$("#owl-button-destroy")[0].innerHTML = "Waiting...";
     CTFd.lib.$("#owl-button-destroy")[0].disabled = true;
@@ -353,6 +409,10 @@ CTFd._internal.challenge.renew = function () {
     var target = "/plugins/ctfd-owl/container?challenge_id={challenge_id}";
     target = target.replace("{challenge_id}", challenge_id);
     var params = {};
+
+    if (window.owl_manage_owner_user_id !== undefined && window.owl_manage_owner_user_id !== null) {
+        target += "&owner_user_id=" + encodeURIComponent(window.owl_manage_owner_user_id);
+    }
 
     CTFd.lib.$("#owl-button-renew")[0].innerHTML = "Waiting...";
     CTFd.lib.$("#owl-button-renew")[0].disabled = true;
