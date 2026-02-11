@@ -159,6 +159,11 @@ class DynamicCheckValueChallenge(BaseChallenge):
                 flaguser = Users.query.filter_by(id=user_id).first()
                 subuser = Users.query.filter_by(id=subflag.user_id).first()
 
+                # In teams mode, submitting a teammate's flag should be accepted as correct.
+                if (get_config("user_mode") == "teams" and flaguser and subuser
+                    and getattr(flaguser, "team_id", None) and flaguser.team_id == getattr(subuser, "team_id", None)):
+                    return True, "Correct"
+
                 if flaguser.name == subuser.name:
                     return False, "Incorrect Challenge"
                 else:
