@@ -67,6 +67,44 @@ function resetOwlTimer() {
     }
 }
 
+function startOwlPanelCountdown(initialSeconds, renderText) {
+    resetOwlTimer();
+
+    let remainingSeconds = parseInt(initialSeconds);
+    if (isNaN(remainingSeconds)) {
+        remainingSeconds = 0;
+    }
+
+    function paint() {
+        const el = CTFd.lib.$("#owl-challenge-count-down")[0];
+        if (!el) {
+            resetOwlTimer();
+            return false;
+        }
+        el.innerHTML = renderText(Math.max(0, remainingSeconds));
+        return true;
+    }
+
+    if (!paint()) {
+        return;
+    }
+
+    let syncTicks = 0;
+    window.t = setInterval(function () {
+        remainingSeconds -= 1;
+        syncTicks += 1;
+
+        if (!paint()) {
+            return;
+        }
+
+        if (syncTicks >= 60 || remainingSeconds < 0) {
+            resetOwlTimer();
+            loadInfo();
+        }
+    }, 1000);
+}
+
 // Ensure notification API is available (owlShowModal/owlShowToast).
 function ensureOwlModalLoaded() {
     if (typeof window.owlShowModal === "function") {
@@ -203,19 +241,55 @@ function loadInfo() {
                     );
             } else if (response.containers_data === undefined || response.containers_data[0].remaining_time === undefined) {
                 resetOwlTimer();
+                const isShared = response.instance_mode === "shared";
+                const titleText = isShared ? "Shared Instance Info" : "Instance Info";
+                const sharedButtonText = isShared
+                    ? (response.warm_available ? "Join Shared Instance" : "Start Shared Instance")
+                    : "Launch";
+                let extraHtml = "";
+                let warmRemaining = NaN;
+                if (isShared && response.warm_available) {
+                    warmRemaining = parseInt(response.warm_remaining_time);
+                    let warmText = "Shared instance available.";
+                    if (typeof response.shared_active_users === "number" && response.shared_active_users > 0) {
+                        warmText = "Shared instance is already running.";
+                    } else if (!isNaN(warmRemaining)) {
+                        warmText = "Shared instance is available.";
+                    }
+                    extraHtml =
+                        '<h6 class="card-subtitle mb-2 text-muted" id="owl-challenge-count-down">' +
+                        warmText +
+                        "</h6>";
+                } else if (isShared) {
+                    extraHtml = '<h6 class="card-subtitle mb-2 text-muted">On first launch, a shared instance will be created.</h6>';
+                }
                 CTFd.lib
                     .$("#owl-panel")
                     .html(
-                        '<h5 class="card-title">Instance Info</h5><hr>' +
-                            '<button type="button" class="btn btn-primary card-link" id="owl-button-boot" onclick="CTFd._internal.challenge.boot()">Launch</button>'
+                        '<h5 class="card-title">' + titleText + '</h5><hr>' +
+                            extraHtml +
+                            '<button type="button" class="btn btn-primary card-link" id="owl-button-boot" onclick="CTFd._internal.challenge.boot()">' +
+                            sharedButtonText +
+                            "</button>"
                     );
+
+                if (isShared && response.warm_available && !isNaN(warmRemaining)) {
+                    startOwlPanelCountdown(warmRemaining, function (remaining) {
+                        if (typeof response.shared_active_users === "number" && response.shared_active_users > 0) {
+                            return "Shared instance is already running (" + remaining + "s remaining).";
+                        }
+                        return "Shared instance is available for " + remaining + "s.";
+                    });
+                }
             } else {
                 if (response.ip) {
                     window.owl_last_frp_ip = response.ip;
                 }
+                const isShared = response.instance_mode === "shared";
+                const titleText = isShared ? "Shared Instance Info" : "Instance Info";
                 const countdownClass = response.effective_mode === "teams" ? "card-subtitle mb-0 text-muted" : "card-subtitle mb-2 text-muted";
                 var panel_html =
-                    '<h5 class="card-title">Instance Info</h5><hr>' +
+                    '<h5 class="card-title">' + titleText + '</h5><hr>' +
                     '<h6 class="' +
                     countdownClass +
                     '" id="owl-challenge-count-down">Remaining Time: ' +
@@ -227,7 +301,7 @@ function loadInfo() {
 
                 // Show who launched only in team visibility (All team members).
                 try {
-                    if (response.effective_mode === "teams") {
+                    if (!isShared && response.effective_mode === "teams") {
                         let ownerHtml = "";
                         if (response.owner && response.owner.url && response.owner.name) {
                             ownerHtml = '<a class="text-muted" href="' + response.owner.url + '" target="_blank">' + response.owner.name + "</a>";
@@ -242,6 +316,14 @@ function loadInfo() {
                     }
                 } catch (_e) {
                     // ignore
+                }
+                if (isShared) {
+                    let sharedMeta = '<div class="mb-2 text-muted">Shared instance';
+                    if (typeof response.shared_active_users === "number" && !isNaN(response.shared_active_users)) {
+                        sharedMeta += " • active players: " + response.shared_active_users;
+                    }
+                    sharedMeta += "</div>";
+                    panel_html += sharedMeta;
                 }
                 panel_html += '<p class="card-text">Services: <br/>';
                 response.containers_data.forEach((container, i) => {
@@ -294,48 +376,14 @@ function loadInfo() {
                 panel_html += "</p>";
 
                 panel_html +=
-                    '<button type="button" class="btn btn-danger card-link" id="owl-button-destroy" onclick="CTFd._internal.challenge.destroy()">Destroy</button>' +
+                    '<button type="button" class="btn btn-danger card-link" id="owl-button-destroy" onclick="CTFd._internal.challenge.destroy()">' +
+                    (isShared ? "Disconnect" : "Destroy") +
+                    '</button>' +
                     '<button type="button" class="btn btn-success card-link" id="owl-button-renew" onclick="CTFd._internal.challenge.renew()">Renew</button>';
                 CTFd.lib.$("#owl-panel").html(panel_html);
-
-                if (window.t !== undefined) {
-                    clearInterval(window.t);
-                    window.t = undefined;
-                }
-
-                let remainingSeconds = parseInt(response.containers_data[0].remaining_time);
-                if (isNaN(remainingSeconds)) {
-                    remainingSeconds = 0;
-                }
-
-                let syncTicks = 0;
-
-                function showAuto() {
-                    const el = CTFd.lib.$("#owl-challenge-count-down")[0];
-                    if (!el) {
-                        // DOM changed (e.g. challenge modal closed, or panel rerendered). Stop ticking.
-                        resetOwlTimer();
-                        return;
-                    }
-
-                    remainingSeconds -= 1;
-                    el.innerHTML = "Remaining Time: " + remainingSeconds + "s";
-
-                    syncTicks += 1;
-                    if (syncTicks >= 60) {
-                        // Resync with server once per minute to avoid client drift.
-                        resetOwlTimer();
-                        loadInfo();
-                        return;
-                    }
-
-                    if (remainingSeconds < 0) {
-                        resetOwlTimer();
-                        loadInfo();
-                    }
-                }
-
-                window.t = setInterval(showAuto, 1000);
+                startOwlPanelCountdown(response.containers_data[0].remaining_time, function (remaining) {
+                    return "Remaining Time: " + remaining + "s";
+                });
             }
         });
 }
@@ -386,7 +434,7 @@ CTFd._internal.challenge.destroy = function () {
                 loadInfo();
                 owlShowModalSafe({
                     title: "Success",
-                    body: "Your instance has been destroyed!",
+                    body: response.msg || "Your instance has been destroyed!",
                     buttonText: "OK",
                     buttonClass: "btn-primary",
                 });
@@ -442,7 +490,7 @@ CTFd._internal.challenge.renew = function () {
                 loadInfo();
                 owlShowModalSafe({
                     title: "Success",
-                    body: "Your instance has been renewed!",
+                    body: response.msg || "Your instance has been renewed!",
                     buttonText: "OK",
                     buttonClass: "btn-primary",
                 });
@@ -494,7 +542,7 @@ CTFd._internal.challenge.boot = function () {
                 loadInfo();
                 owlShowModalSafe({
                     title: "Success",
-                    body: "Your instance has been deployed!",
+                    body: response.msg || "Your instance has been deployed!",
                     buttonText: "OK",
                     buttonClass: "btn-primary",
                 });
