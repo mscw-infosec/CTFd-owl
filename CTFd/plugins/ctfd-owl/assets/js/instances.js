@@ -628,16 +628,18 @@
         chalLink.appendChild(strong);
         titleLine.appendChild(chalLink);
 
-        const ownerLine = document.createElement("div");
-        ownerLine.className = "text-muted";
-        ownerLine.appendChild(document.createTextNode("Launched by: "));
-        const ownerA = document.createElement("a");
-        ownerA.href = String(inst.owner_url || "#");
-        ownerA.target = "_blank";
-        ownerA.rel = "noopener noreferrer";
-        ownerA.textContent = String(inst.owner_name || "");
-        ownerLine.appendChild(ownerA);
-        left.appendChild(ownerLine);
+        if (inst.instance_mode !== "shared") {
+            const ownerLine = document.createElement("div");
+            ownerLine.className = "text-muted";
+            ownerLine.appendChild(document.createTextNode("Launched by: "));
+            const ownerA = document.createElement("a");
+            ownerA.href = String(inst.owner_url || "#");
+            ownerA.target = "_blank";
+            ownerA.rel = "noopener noreferrer";
+            ownerA.textContent = String(inst.owner_name || "");
+            ownerLine.appendChild(ownerA);
+            left.appendChild(ownerLine);
+        }
 
         const right = document.createElement("div");
         right.className = "text-muted";
@@ -668,7 +670,7 @@
 
         const destroyBtn = document.createElement("button");
         destroyBtn.className = "btn btn-sm btn-danger";
-        destroyBtn.textContent = "Destroy";
+        destroyBtn.textContent = inst.instance_mode === "shared" ? "Disconnect" : "Destroy";
         destroyBtn.dataset.owlAction = "destroy";
         destroyBtn.dataset.challengeId = String(inst.challenge_id);
         destroyBtn.dataset.ownerUserId = String(inst.owner_user_id);

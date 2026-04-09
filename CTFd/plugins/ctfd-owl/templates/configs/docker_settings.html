@@ -36,6 +36,15 @@
 			</label>
 			<input type="number" class="form-control" id="docker-timeout" name="docker_timeout" value="{{ configs.get("docker_timeout", "3600") }}">
 		</div>
+		<div class="form-group">
+			<label>
+				Shared Instance Idle Timeout
+				<small class="form-text text-muted">
+					How long a shared instance stays alive after the last player clicks Destroy. Default: 1800 seconds.
+				</small>
+			</label>
+			<input type="number" class="form-control" id="shared-instance-grace-timeout" name="shared_instance_grace_timeout" value="{{ configs.get("shared_instance_grace_timeout", "1800") }}">
+		</div>
         <div class="form-group">
 			<label>
 				Max Renewal Times

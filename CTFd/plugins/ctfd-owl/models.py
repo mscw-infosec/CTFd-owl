@@ -20,10 +20,19 @@ class DynamicCheckChallenge(Challenges):
     # frp settings
     redirect_type = db.Column(db.Text, default="DIRECT")
     redirect_port = db.Column(db.Integer, default=80)
+    instance_mode = db.Column(db.String(32), nullable=False, default="personal")
 
     def __init__(self, *args, **kwargs):
         super(DynamicCheckChallenge, self).__init__(**kwargs)
         self.initial = kwargs["value"]
+
+
+class SharedDynamicCheckChallenge(DynamicCheckChallenge):
+    __mapper_args__ = {"polymorphic_identity": "dynamic_check_docker_shared"}
+
+    def __init__(self, *args, **kwargs):
+        super(SharedDynamicCheckChallenge, self).__init__(**kwargs)
+        self.instance_mode = "shared"
 
 
 class OwlConfigs(db.Model):
@@ -46,6 +55,8 @@ class OwlContainers(db.Model):
     start_time = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     renew_count = db.Column(db.Integer, nullable=False, default=0)
     flag = db.Column(db.String(128), nullable=False)
+    instance_mode = db.Column(db.String(32), nullable=False, default="personal")
+    idle_since = db.Column(db.DateTime, nullable=True)
 
     # Extra owl.label.* values for forward-compatible UI/logic (stored as JSON string).
     # Kept as VARCHAR for portable defaults across SQLite/MySQL/Postgres.
@@ -70,3 +81,21 @@ class OwlLaunchLocks(db.Model):
 
     def __init__(self, *args, **kwargs):
         super(OwlLaunchLocks, self).__init__(**kwargs)
+
+
+class OwlSharedSessions(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), primary_key=True)
+    challenge_id = db.Column(db.Integer, db.ForeignKey("challenges.id"), primary_key=True)
+    last_seen = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.datetime.now(datetime.timezone.utc),
+    )
+
+    user = db.relationship("Users", foreign_keys="OwlSharedSessions.user_id", lazy="select")
+    challenge = db.relationship(
+        "Challenges", foreign_keys="OwlSharedSessions.challenge_id", lazy="select"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super(OwlSharedSessions, self).__init__(**kwargs)

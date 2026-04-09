@@ -11,7 +11,7 @@ from ..extensions import log
 
 class ControlUtil:
     @staticmethod
-    def new_container(user_id, challenge_id, prefix):
+    def new_container(user_id, challenge_id, prefix, instance_mode="personal"):
         rq = DockerUtils.up_docker_compose(user_id=user_id, challenge_id=challenge_id)
         if isinstance(rq, tuple):
             for container in rq[1]:
@@ -22,7 +22,7 @@ class ControlUtil:
                 )
                 DBUtils.new_container(user_id, challenge_id, flag=rq[2], port=container["port"], docker_id=rq[0],
                                       ip=rq[3], name=f'{prefix.lower()}_user{user_id}_{rq[4]}-{container["service"]}-1',
-                                      labels=container.get("labels", "{}"))
+                                      labels=container.get("labels", "{}"), instance_mode=instance_mode)
             return True
         else:
             return rq
