@@ -15,13 +15,35 @@ from CTFd.models import Users
 from CTFd.plugins import register_plugin_assets_directory, register_plugin_script
 from CTFd.plugins.challenges import CHALLENGE_CLASSES
 from CTFd.utils.decorators import admins_only, authed_only
-from .challenge_type import DynamicCheckValueChallenge
+from .challenge_type import DynamicCheckValueChallenge, SharedDynamicCheckValueChallenge
 from .utils.control_utils import ControlUtil
 from .utils.db_utils import DBUtils
 from .extensions import get_mode
 from .utils.frp_utils import FrpUtils
 from .utils.labels_utils import LabelsUtils
 from .models import DynamicCheckChallenge, OwlContainers
+
+
+def _utcnow():
+    return DBUtils.utcnow()
+
+
+def _challenge_instance_mode(challenge) -> str:
+    if str(getattr(challenge, "type", "") or "").strip().lower() == SharedDynamicCheckValueChallenge.id:
+        return "shared"
+    return "personal"
+
+
+def _serialize_container_rows(rows, configs):
+    data = []
+    for container in rows:
+        labels_obj = LabelsUtils.loads_labels(getattr(container, "labels", "{}") or "{}")
+        data.append({
+            "port": container.port,
+            "remaining_time": DBUtils.get_container_remaining_time(container, configs),
+            "labels": labels_obj,
+        })
+    return data
 
 
 def load(app):
@@ -46,9 +68,9 @@ def load(app):
             register_plugin_script(app, script_path)
 
     DynamicCheckValueChallenge.templates = {
-        "create": f"/plugins/{plugin_name}/assets/html/create.html",
-        "update": f"/plugins/{plugin_name}/assets/html/update.html",
-        "view": f"/plugins/{plugin_name}/assets/html/view.html",
+        "create": f"/plugins/{plugin_name}/assets/html/personal/create.html",
+        "update": f"/plugins/{plugin_name}/assets/html/personal/update.html",
+        "view": f"/plugins/{plugin_name}/assets/html/personal/view.html",
     }
     DynamicCheckValueChallenge.scripts = {
         "create": f"/plugins/{plugin_name}/assets/js/create.js",
@@ -56,6 +78,17 @@ def load(app):
         "view": f"/plugins/{plugin_name}/assets/js/view.js",
     }
     CHALLENGE_CLASSES["dynamic_check_docker"] = DynamicCheckValueChallenge
+    SharedDynamicCheckValueChallenge.templates = {
+        "create": f"/plugins/{plugin_name}/assets/html/shared/create.html",
+        "update": f"/plugins/{plugin_name}/assets/html/shared/update.html",
+        "view": f"/plugins/{plugin_name}/assets/html/shared/view.html",
+    }
+    SharedDynamicCheckValueChallenge.scripts = {
+        "create": f"/plugins/{plugin_name}/assets/js/create.js",
+        "update": f"/plugins/{plugin_name}/assets/js/update.js",
+        "view": f"/plugins/{plugin_name}/assets/js/view.js",
+    }
+    CHALLENGE_CLASSES[SharedDynamicCheckValueChallenge.id] = SharedDynamicCheckValueChallenge
 
     owl_blueprint = Blueprint(
         "ctfd-owl",
@@ -198,6 +231,56 @@ def load(app):
             configs = DBUtils.get_all_configs()
             ctfd_user_mode = get_config('user_mode')
             effective_mode = get_mode()
+            challenge = DynamicCheckChallenge.query.filter(DynamicCheckChallenge.id == challenge_id).first_or_404()
+
+            if _challenge_instance_mode(challenge) == "shared":
+                shared_rows = DBUtils.get_shared_container_rows(challenge_id=challenge_id)
+                if shared_rows and not DBUtils.is_container_alive(shared_rows[0], configs):
+                    shared_rows = None
+
+                has_access = DBUtils.has_active_shared_session(
+                    user_id=viewer_id,
+                    challenge_id=challenge_id,
+                    configs=configs,
+                )
+                active_users = DBUtils.get_active_shared_session_count(challenge_id=challenge_id, configs=configs)
+
+                if shared_rows and has_access:
+                    owner_user = shared_rows[0].user
+                    owner_obj = None
+                    if owner_user is not None:
+                        owner_obj = {
+                            "id": int(owner_user.id),
+                            "name": owner_user.name,
+                            "url": url_for('users.public', user_id=owner_user.id),
+                        }
+
+                    return jsonify({
+                        'success': True,
+                        'ip': configs.get('frp_direct_ip_address', ""),
+                        'containers_data': _serialize_container_rows(shared_rows, configs),
+                        'manage_owner_user_id': shared_rows[0].user_id,
+                        'owners': [owner_obj] if owner_obj else [],
+                        'owner': owner_obj,
+                        'effective_mode': effective_mode,
+                        'instance_mode': 'shared',
+                        'shared_active_users': active_users,
+                    })
+
+                warm_remaining = 0
+                if shared_rows:
+                    if active_users > 0:
+                        warm_remaining = DBUtils.get_container_remaining_time(shared_rows[0], configs)
+                    else:
+                        warm_remaining = DBUtils.get_shared_idle_remaining(shared_rows[0], configs)
+
+                return jsonify({
+                    'success': True,
+                    'instance_mode': 'shared',
+                    'warm_available': bool(shared_rows),
+                    'warm_remaining_time': warm_remaining,
+                    'shared_active_users': active_users,
+                })
 
             # Visibility semantics:
             # - users: only show current user's instance
@@ -232,8 +315,6 @@ def load(app):
                             manage_owner_user_id = int(candidate.user_id)
                             data = ControlUtil.get_container_for_challenge(user_id=manage_owner_user_id, challenge_id=challenge_id)
 
-            timeout = int(configs.get("docker_timeout", "3600"))
-
             containers_data = []
             if data is not None:
                 owners_map = {}
@@ -249,7 +330,7 @@ def load(app):
                         }
                     containers_data.append({
                         "port": container.port,
-                        "remaining_time": timeout - (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - container.start_time).seconds,
+                        "remaining_time": DBUtils.get_container_remaining_time(container, configs),
                         "labels": labels_obj,
                     })
 
@@ -259,9 +340,10 @@ def load(app):
                                 'manage_owner_user_id': manage_owner_user_id,
                                 'owners': list(owners_map.values()),
                                 'owner': owner_obj,
-                                'effective_mode': effective_mode})
+                                'effective_mode': effective_mode,
+                                'instance_mode': 'personal'})
             else:
-                return jsonify({'success': True})
+                return jsonify({'success': True, 'instance_mode': 'personal'})
         except Exception as e:
             import traceback
             return jsonify({'success': False, 'msg': str(e) + traceback.format_exc()})
@@ -283,6 +365,56 @@ def load(app):
             ControlUtil.check_challenge(challenge_id, viewer_id)
 
             configs = DBUtils.get_all_configs()
+            dynamic_docker_challenge = DynamicCheckChallenge.query \
+                .filter(DynamicCheckChallenge.id == challenge_id) \
+                .first_or_404()
+            instance_mode = _challenge_instance_mode(dynamic_docker_challenge)
+
+            if instance_mode == "shared":
+                lock_user_id = -int(challenge_id)
+                if not DBUtils.acquire_launch_lock(user_id=lock_user_id, challenge_id=challenge_id, ttl_seconds=120):
+                    return jsonify({'success': False, 'msg': 'Shared instance launch already in progress. Please wait.'})
+
+                try:
+                    shared_rows = DBUtils.get_shared_container_rows(challenge_id=challenge_id)
+                    if shared_rows and not DBUtils.is_container_alive(shared_rows[0], configs):
+                        ControlUtil.destroy_container_for_challenge(
+                            user_id=shared_rows[0].user_id,
+                            challenge_id=challenge_id,
+                        )
+                        shared_rows = None
+
+                    if shared_rows:
+                        DBUtils.touch_shared_session(user_id=viewer_id, challenge_id=challenge_id)
+                        DBUtils.touch_shared_container(challenge_id=challenge_id, increment_renew=False)
+                        return jsonify({'success': True, 'msg': 'Connected to the shared instance.'})
+
+                    current_count = DBUtils.get_all_alive_container_count()
+                    if configs.get("docker_max_container_count") != "None":
+                        if int(configs.get("docker_max_container_count")) <= int(current_count):
+                            return jsonify({'success': False, 'msg': 'Max container count exceed.'})
+
+                    try:
+                        result = ControlUtil.new_container(
+                            user_id=owner_user_id,
+                            challenge_id=challenge_id,
+                            prefix=configs.get("docker_flag_prefix"),
+                            instance_mode="shared",
+                        )
+                        if isinstance(result, bool):
+                            DBUtils.touch_shared_session(user_id=viewer_id, challenge_id=challenge_id)
+                            return jsonify({'success': True, 'msg': 'Shared instance has been deployed.'})
+                        else:
+                            return jsonify({'success': False, 'msg': str(result)})
+                    except Exception as e:
+                        return jsonify({
+                            'success': False,
+                            'msg': 'Failed when launch shared instance, please contact with the admin. Error Type:{} Error msg:{}'.format(
+                                e.__class__.__name__, e
+                            )
+                        })
+                finally:
+                    DBUtils.release_launch_lock(user_id=lock_user_id)
 
             # Prevent concurrent launches per owner.
             if not DBUtils.acquire_launch_lock(user_id=owner_user_id, challenge_id=challenge_id, ttl_seconds=120):
@@ -327,14 +459,11 @@ def load(app):
                     if int(configs.get("docker_max_container_count")) <= int(current_count):
                         return jsonify({'success': False, 'msg': 'Max container count exceed.'})
 
-                dynamic_docker_challenge = DynamicCheckChallenge.query \
-                    .filter(DynamicCheckChallenge.id == challenge_id) \
-                    .first_or_404()
                 try:
                     result = ControlUtil.new_container(user_id=owner_user_id, challenge_id=challenge_id,
                                                        prefix=configs.get("docker_flag_prefix"))
                     if isinstance(result, bool):
-                        return jsonify({'success': True})
+                        return jsonify({'success': True, 'msg': 'Your instance has been deployed.'})
                     else:
                         return jsonify({'success': False, 'msg': str(result)})
                 except Exception as e:
@@ -361,6 +490,27 @@ def load(app):
 
         configs = DBUtils.get_all_configs()
         ctfd_user_mode = get_config('user_mode')
+        challenge = DynamicCheckChallenge.query.filter(DynamicCheckChallenge.id == challenge_id).first_or_404()
+
+        if _challenge_instance_mode(challenge) == "shared":
+            shared_rows = DBUtils.get_shared_container_rows(challenge_id=challenge_id)
+            if not shared_rows:
+                return jsonify({'success': False, 'msg': 'Shared instance not found.'})
+
+            DBUtils.remove_shared_session(user_id=viewer_id, challenge_id=challenge_id)
+            active_users = DBUtils.get_active_shared_session_count(challenge_id=challenge_id, configs=configs)
+            if active_users > 0:
+                return jsonify({
+                    'success': True,
+                    'msg': 'Disconnected from the shared instance. Other players are still using it.',
+                })
+
+            DBUtils.mark_shared_container_idle(challenge_id=challenge_id)
+            warm_remaining = DBUtils.get_shared_idle_timeout(configs)
+            return jsonify({
+                'success': True,
+                'msg': f'Disconnected from the shared instance. It will remain available for about {warm_remaining}s.',
+            })
 
         owner_user_id = request.args.get('owner_user_id', type=int) or base_owner_user_id
         if effective_mode == 'teams' and ctfd_user_mode == 'teams' and viewer_team_id and int(owner_user_id) != int(viewer_id):
@@ -371,7 +521,7 @@ def load(app):
             owner_user_id = base_owner_user_id
 
         if ControlUtil.destroy_container_for_challenge(user_id=owner_user_id, challenge_id=challenge_id):
-            return jsonify({'success': True})
+            return jsonify({'success': True, 'msg': 'Your instance has been destroyed!'})
         return jsonify({'success': False, 'msg': 'Failed when destroy instance, please contact with the admin!'})
 
     @owl_blueprint.route('/container', methods=['PATCH'])
@@ -390,6 +540,20 @@ def load(app):
         ControlUtil.check_challenge(challenge_id, viewer_id)
         docker_max_renew_count = int(configs.get("docker_max_renew_count"))
         ctfd_user_mode = get_config('user_mode')
+        challenge = DynamicCheckChallenge.query.filter(DynamicCheckChallenge.id == challenge_id).first_or_404()
+
+        if _challenge_instance_mode(challenge) == "shared":
+            shared_rows = DBUtils.get_shared_container_rows(challenge_id=challenge_id)
+            if shared_rows is None or not DBUtils.is_container_alive(shared_rows[0], configs):
+                return jsonify({'success': False, 'msg': 'Shared instance not found.'})
+            if not DBUtils.has_active_shared_session(user_id=viewer_id, challenge_id=challenge_id, configs=configs):
+                return jsonify({'success': False, 'msg': 'Join the shared instance before renewing it.'})
+            if shared_rows[0].renew_count >= docker_max_renew_count:
+                return jsonify({'success': False, 'msg': 'Max renewal times exceed.'})
+
+            DBUtils.touch_shared_session(user_id=viewer_id, challenge_id=challenge_id)
+            DBUtils.touch_shared_container(challenge_id=challenge_id, increment_renew=True)
+            return jsonify({'success': True, 'msg': 'Shared instance has been renewed.'})
 
         owner_user_id = request.args.get('owner_user_id', type=int) or base_owner_user_id
         if effective_mode == 'teams' and ctfd_user_mode == 'teams' and viewer_team_id and int(owner_user_id) != int(viewer_id):
@@ -407,7 +571,7 @@ def load(app):
 
         ControlUtil.expired_container_for_challenge(user_id=owner_user_id, challenge_id=challenge_id)
 
-        return jsonify({'success': True})
+        return jsonify({'success': True, 'msg': 'Your instance has been renewed.'})
 
     @owl_blueprint.route('/instances', methods=['GET'])
     @authed_only
@@ -418,8 +582,8 @@ def load(app):
         viewer_team_id = getattr(viewer, 'team_id', None)
         configs = DBUtils.get_all_configs()
         frp_ip = configs.get('frp_direct_ip_address', "")
-        timeout = int(configs.get("docker_timeout", "3600"))
-        threshold = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(seconds=timeout)
+        timeout = DBUtils.get_docker_timeout(configs)
+        threshold = _utcnow() - datetime.timedelta(seconds=timeout)
 
         ctfd_user_mode = get_config('user_mode')
         effective_mode = get_mode()
@@ -431,6 +595,7 @@ def load(app):
 
         rows: list[OwlContainers] = OwlContainers.query.filter(
             OwlContainers.user_id.in_(user_ids),
+            OwlContainers.instance_mode != "shared",
             OwlContainers.start_time >= threshold,
         ).all()
 
@@ -445,7 +610,8 @@ def load(app):
                     'owner_user_id': int(r.user_id),
                     'owner_name': r.user.name if getattr(r, 'user', None) else str(r.user_id),
                     'owner_url': url_for('users.public', user_id=r.user_id),
-                    'remaining_time': remaining,
+                    'remaining_time': max(0, remaining),
+                    'instance_mode': 'personal',
                     'services': [],
                 }
 
@@ -455,6 +621,32 @@ def load(app):
                 'labels': labels_obj,
             })
 
+        for challenge_id in DBUtils.get_active_shared_session_challenge_ids(user_id=viewer_id, configs=configs):
+            shared_rows = DBUtils.get_shared_container_rows(challenge_id=challenge_id)
+            if not shared_rows or not DBUtils.is_container_alive(shared_rows[0], configs):
+                continue
+
+            owner = shared_rows[0].user
+            key = ("shared", int(challenge_id), str(shared_rows[0].docker_id))
+            if key not in instances:
+                instances[key] = {
+                    'challenge_id': int(challenge_id),
+                    'challenge_name': shared_rows[0].challenge.name if getattr(shared_rows[0], 'challenge', None) else str(challenge_id),
+                    'owner_user_id': int(shared_rows[0].user_id),
+                    'owner_name': owner.name if owner else str(shared_rows[0].user_id),
+                    'owner_url': url_for('users.public', user_id=shared_rows[0].user_id),
+                    'remaining_time': DBUtils.get_container_remaining_time(shared_rows[0], configs),
+                    'instance_mode': 'shared',
+                    'services': [],
+                }
+
+            for row in shared_rows:
+                labels_obj = LabelsUtils.loads_labels(getattr(row, 'labels', '{}') or '{}')
+                instances[key]['services'].append({
+                    'port': int(row.port),
+                    'labels': labels_obj,
+                })
+
         result = list(instances.values())
 
         # Sort: own first, then by challenge name.
@@ -463,6 +655,7 @@ def load(app):
 
     def auto_clean_container():
         with app.app_context():
+            DBUtils.cleanup_expired_shared_sessions()
             results = DBUtils.get_all_expired_container()
             for (uid, cid) in {(r.user_id, r.challenge_id) for r in results}:
                 ControlUtil.destroy_container_for_challenge(uid, cid)
