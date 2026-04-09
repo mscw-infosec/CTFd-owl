@@ -7,8 +7,8 @@ Russian version of this README is available [here](./README-RU.md).
 1. Multiple dynamic containers & ports per challenge.
 2. Ports are randomized on each start.
 3. Adapted to "teams" and "users" modes. Instance ownership is always per-user (containers are tied to a user), while the visibility setting controls whether teammates can view and manage each other’s instances.
-4. Both static (plaintext or regex) and dynamic flags are supported.
-5. `FLAG` env var is always exported into containers on startup: in static mode it is the configured flag, in dynamic mode it is a per-instance generated flag.
+4. Both static (plaintext or regex), dynamic, and semi-dynamic (template-based) flags are supported.
+5. `FLAG` env var is always exported into containers on startup: in static mode it is the configured flag, in dynamic/semi-dynamic mode it is a per-instance generated flag.
 6. Everything about a container (including FRP) is configured declaratively using docker-compose labels.
 7. Supports different message types (toasts, modals) about container statuses, and works with both old core-based themes and newer ones.
 
@@ -97,6 +97,8 @@ docker compose up -d
 |           Options            |                                                 Content                                                  |
 | :--------------------------: | :------------------------------------------------------------------------------------------------------: |
 |    **Docker Flag Prefix**    |                                               Flag prefix                                                |
+|   **Dynamic Flag Length**    |                      Generated chunk length for fully dynamic flags                                       |
+| **Semi-Dynamic Flag Length** |                    Default length for `$[!gen!]` in semi-dynamic templates                                |
 |      **Docker API URL**      |                           API URL/path (default `unix:///var/run/docker.sock`)                           |
 |   **Max Container Count**    |                           Maximum number of containers (unlimited by default)                            |
 | **Docker Container Timeout** | The maximum running time of the container (it will be automatically destroyed after the time is reached) |
@@ -142,6 +144,11 @@ transport.poolCount = 1
 - An example of an SSH task is given in `CTFd/plugins/ctfd-owl/source/tasks/ssh-task`.
 
 In all cases the container receives `FLAG` automatically (see `FLAG=${FLAG}` in the example compose files).
+
+Semi-dynamic flags are defined as a regular CTFd plaintext flag template, for example:
+
+- `ctf{Y0u_F1nd_M3_$[!gen!]}` — `$[!gen!]` will be replaced with a random string of length **Semi-Dynamic Flag Length**.
+- `ctf{Y0u_F1nd_M3_$[!gen:06!]}` — generates 6 characters (overrides the default length per placeholder).
 
 You can create your own tasks based on them.
 

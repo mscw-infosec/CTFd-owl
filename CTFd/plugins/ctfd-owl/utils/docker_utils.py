@@ -1,5 +1,7 @@
 import os
 import random
+import re
+import secrets
 import subprocess
 import uuid
 from string import digits, ascii_lowercase
@@ -15,6 +17,8 @@ from ..models import DynamicCheckChallenge, OwlContainers
 
 
 class DockerUtils:
+    GEN_PLACEHOLDER = re.compile(r"\$\[!gen(?::(\d+))?!\]")
+
     @staticmethod
     def _get_plugin_root_dir() -> str:
         """Return absolute path to the ctfd-owl plugin root directory.
@@ -26,11 +30,70 @@ class DockerUtils:
 
     @staticmethod
     def gen_flag():
+        """Generate a per-instance flag.
+
+        Supports:
+        - Fully dynamic flags: <prefix>{<random>} with configurable length
+        - Semi-dynamic templates: replace $[!gen!] or $[!gen:06!] placeholders
+        """
         configs = DBUtils.get_all_configs()
-        prefix = configs.get("docker_flag_prefix")
-        flag = prefix + "{" + ''.join([random.choice(digits + ascii_lowercase) for _ in range(32)]) + "}"
+        prefix = (configs.get("docker_flag_prefix") or "").strip()
+        try:
+            dynamic_len = int(configs.get("docker_dynamic_flag_length", "32") or 32)
+        except Exception:
+            dynamic_len = 32
+
+        alphabet = digits + ascii_lowercase
+
+        def random_chunk(length: int) -> str:
+            try:
+                length = int(length)
+            except Exception:
+                length = dynamic_len
+            if length < 0:
+                length = 0
+            if length > 4096:
+                length = 4096
+            return "".join(secrets.choice(alphabet) for _ in range(length))
+
+        def gen_default_flag() -> str:
+            return f"{prefix}{{{random_chunk(dynamic_len)}}}"
+
+        flag = gen_default_flag()
         while OwlContainers.query.filter_by(flag=flag).first() is not None:
-            flag = prefix + "{" + ''.join([random.choice(digits + ascii_lowercase) for _ in range(32)]) + "}"
+            flag = gen_default_flag()
+        return flag
+
+    @staticmethod
+    def gen_flag_from_template(template: str):
+        """Generate a per-instance flag from a template containing $[!gen!] placeholders."""
+        configs = DBUtils.get_all_configs()
+        try:
+            default_len = int(configs.get("docker_semi_dynamic_flag_length", "6") or 6)
+        except Exception:
+            default_len = 6
+
+        alphabet = digits + ascii_lowercase
+
+        def random_chunk(length: int) -> str:
+            try:
+                length = int(length)
+            except Exception:
+                length = default_len
+            if length < 0:
+                length = 0
+            if length > 4096:
+                length = 4096
+            return "".join(secrets.choice(alphabet) for _ in range(length))
+
+        def repl(match: re.Match) -> str:
+            length_str = match.group(1)
+            length = int(length_str) if length_str is not None else default_len
+            return random_chunk(length)
+
+        flag = DockerUtils.GEN_PLACEHOLDER.sub(repl, template)
+        while OwlContainers.query.filter_by(flag=flag).first() is not None:
+            flag = DockerUtils.GEN_PLACEHOLDER.sub(repl, template)
         return flag
 
     @staticmethod
@@ -47,9 +110,25 @@ class DockerUtils:
             challenge: DynamicCheckChallenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
 
             if challenge.flag_type == 'static':
-                flag: str = Flags.query.filter_by(challenge_id=challenge_id).first_or_404().content
+                flag = Flags.query.filter_by(challenge_id=challenge_id).first_or_404().content
             else:
-                flag: str = DockerUtils.gen_flag()
+                # Dynamic / semi-dynamic mode.
+                # Semi-dynamic uses a flag template stored as a regular CTFd flag containing $[!gen!] placeholders.
+                flag_record = Flags.query.filter_by(challenge_id=challenge_id).first()
+                template = (flag_record.content if flag_record else "")
+
+                if challenge.flag_type == 'semi-dynamic':
+                    if not template:
+                        raise ValueError("Semi-dynamic flag mode requires a flag template")
+                    if not DockerUtils.GEN_PLACEHOLDER.search(template):
+                        raise ValueError("Semi-dynamic flag template must contain $[!gen!] or $[!gen:N!] placeholder")
+                    flag = DockerUtils.gen_flag_from_template(template)
+                else:
+                    # Backward compatible: allow semi-dynamic placeholders even when flag_type is just 'dynamic'.
+                    if template and DockerUtils.GEN_PLACEHOLDER.search(template):
+                        flag = DockerUtils.gen_flag_from_template(template)
+                    else:
+                        flag = DockerUtils.gen_flag()
 
             socket = DockerUtils.get_socket()
             sname = os.path.join(plugin_root, "source", challenge.dirname)

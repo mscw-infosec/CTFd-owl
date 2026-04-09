@@ -1,15 +1,39 @@
 <div role="tabpanel" class="tab-pane config-section" id="docker">
 	<form method="POST" autocomplete="off" class="w-100">
-        <div class="form-group">
+		<div class="form-group">
 			<label>
 				Docker Flag Prefix
 				<small class="form-text text-muted">
 					Docker flag prefix in containers
 				</small>
 			</label>
-			<input type="text" class="form-control" id="docker_flag_prefix" name="docker_flag_prefix" value="{{ configs.get("docker_flag_prefix") }}">
+			<input type="text" class="form-control" id="docker_flag_prefix" name="docker_flag_prefix"
+				value="{{ configs.get("docker_flag_prefix") }}">
 		</div>
-        <div class="form-group">
+		<div class="form-group">
+			<label>
+				Dynamic Flag Length
+				<small class="form-text text-muted">
+					Default length for generated dynamic flag part. Used for dynamic flags and for $[!gen!] in
+					semi-dynamic templates.
+				</small>
+			</label>
+			<input type="number" class="form-control" id="docker_dynamic_flag_length" name="docker_dynamic_flag_length"
+				value="{{ configs.get("docker_dynamic_flag_length", "32" ) }}">
+		</div>
+		<div class="form-group">
+			<label>
+				Semi-Dynamic Flag Length
+				<small class="form-text text-muted">
+					Default length for $[!gen!] in semi-dynamic flag templates. You can override per placeholder with
+					$[!gen:06!].
+				</small>
+			</label>
+			<input type="number" class="form-control" id="docker_semi_dynamic_flag_length"
+				name="docker_semi_dynamic_flag_length" value="{{ configs.get("docker_semi_dynamic_flag_length", "6" )
+				}}">
+		</div>
+		<div class="form-group">
 			<label>
 				Docker APIs URL
 				<small class="form-text text-muted">
@@ -18,14 +42,15 @@
 			</label>
 			<input type="text" class="form-control" id="docker-api-url" name="docker_api_url" value="{{ configs.get("docker_api_url") }}">
 		</div>
-        <div class="form-group">
+		<div class="form-group">
 			<label>
 				Max Container Count
 				<small class="form-text text-muted">
 					Max Container Count
 				</small>
 			</label>
-			<input type="text" class="form-control" id="docker-max-container-count" name="docker_max_container_count" value="{{ configs.get("docker_max_container_count") }}">
+			<input type="text" class="form-control" id="docker-max-container-count" name="docker_max_container_count"
+				value="{{ configs.get("docker_max_container_count") }}">
 		</div>
 		<div class="form-group">
 			<label>
@@ -34,7 +59,7 @@
 					Docker container running timeout. 3600 mean 3600s.
 				</small>
 			</label>
-			<input type="number" class="form-control" id="docker-timeout" name="docker_timeout" value="{{ configs.get("docker_timeout", "3600") }}">
+			<input type="number" class="form-control" id="docker-timeout" name="docker_timeout" value="{{ configs.get("docker_timeout", "3600" ) }}">
 		</div>
 		<div class="form-group">
 			<label>
@@ -52,9 +77,10 @@
 					Max Renewal Times
 				</small>
 			</label>
-			<input type="text" class="form-control" id="docker-max-renew-count" name="docker_max_renew_count" value="{{ configs.get("docker_max_renew_count") }}">
+			<input type="text" class="form-control" id="docker-max-renew-count" name="docker_max_renew_count"
+				value="{{ configs.get("docker_max_renew_count") }}">
 		</div>
-		
+
 		<button type="submit" class="btn btn-md btn-primary float-right">Update</button>
 	</form>
 </div>
