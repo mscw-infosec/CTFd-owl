@@ -10,6 +10,16 @@
     <input type="text" class="form-control chal-name" name="dirname" value="{{ challenge.dirname }}">
 </div>
 <div class="form-group">
+    <label for="type" class="control-label">Instance Mode</label>
+    <select class="form-control custom-select" name="type">
+        <option value="dynamic_check_docker" {% if challenge.type=="dynamic_check_docker" %}selected{% endif %}>Personal Docker Check</option>
+        <option value="dynamic_check_docker_shared" {% if challenge.type=="dynamic_check_docker_shared" %}selected{% endif %}>Shared Docker Check</option>
+    </select>
+    <small class="form-text text-muted">
+        Switching mode will restart running instances for this challenge.
+    </small>
+</div>
+<div class="form-group">
     <label for="value" class="control-label">Flag Type</label>
     <select class="form-control custom-select" name="flag_type">
         <option value="dynamic" {% if challenge.flag_type=="dynamic" %}selected{% endif %}>Dynamic</option>
@@ -18,7 +28,6 @@
         <option value="static" {% if challenge.flag_type=="static" %}selected{% endif %}>Static</option>
     </select>
 </div>
-<input type="hidden" name="instance_mode" value="personal">
 {% endblock %}
 
 {% block value %}

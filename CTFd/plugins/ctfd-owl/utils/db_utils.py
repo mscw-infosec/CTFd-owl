@@ -301,6 +301,18 @@ class DBUtils:
         return [row for row in rows if DBUtils.is_container_alive(row, configs)]
 
     @staticmethod
+    def get_all_alive_container_for_mode(instance_mode=None):
+        rows = DBUtils.get_all_alive_container()
+        if instance_mode is None:
+            return rows
+
+        normalized_mode = str(instance_mode or "").strip().lower()
+        return [
+            row for row in rows
+            if str(getattr(row, "instance_mode", "personal") or "personal").strip().lower() == normalized_mode
+        ]
+
+    @staticmethod
     def get_all_container():
         q = db.session.query(OwlContainers)
         return q.all()
@@ -317,8 +329,18 @@ class DBUtils:
         return rows[page_start:page_end]
 
     @staticmethod
+    def get_all_alive_container_page_for_mode(page_start, page_end, instance_mode=None):
+        rows = DBUtils.get_all_alive_container_for_mode(instance_mode=instance_mode)
+        rows.sort(key=lambda row: row.start_time, reverse=True)
+        return rows[page_start:page_end]
+
+    @staticmethod
     def get_all_alive_container_count():
         return len(DBUtils.get_all_alive_container())
+
+    @staticmethod
+    def get_all_alive_container_count_for_mode(instance_mode=None):
+        return len(DBUtils.get_all_alive_container_for_mode(instance_mode=instance_mode))
 
     @staticmethod
     def get_shared_container_rows(challenge_id):

@@ -561,7 +561,7 @@
         }
 
         return wrap;
-    }
+    }   
 
     function openChallengeFromMenu(challengeId, challengeName) {
         try {

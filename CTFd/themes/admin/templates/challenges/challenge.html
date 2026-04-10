@@ -164,6 +164,7 @@
 	<script>
         var CHALLENGE_ID = {{ challenge.id }};
         var CHALLENGE_NAME = {{ challenge.name | tojson }};
+        var CHALLENGE_TYPE = {{ challenge.type | tojson }};
 	</script>
 	<script defer src="{{ request.script_root }}{{ update_script }}"></script>
 {% endblock %}

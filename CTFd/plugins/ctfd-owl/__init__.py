@@ -46,6 +46,21 @@ def _serialize_container_rows(rows, configs):
     return data
 
 
+def _shared_owner_payload():
+    return {
+        "id": 0,
+        "name": "Shared",
+        "url": None,
+    }
+
+
+def _normalize_admin_container_tab(raw_tab):
+    tab = str(raw_tab or "").strip().lower()
+    if tab == "shared":
+        return "shared"
+    return "personal"
+
+
 def load(app):
     plugin_name = __name__.split('.')[-1]
     app.db.create_all()
@@ -175,17 +190,25 @@ def load(app):
     def admin_list_containers():
         mode = get_mode()
         configs = DBUtils.get_all_configs()
+        active_tab = _normalize_admin_container_tab(request.args.get("tab", "personal"))
         page = abs(request.args.get("page", 1, type=int))
         results_per_page = 50
         page_start = results_per_page * (page - 1)
         page_end = results_per_page * (page - 1) + results_per_page
 
-        count = DBUtils.get_all_alive_container_count()
-        containers = DBUtils.get_all_alive_container_page(page_start, page_end)
+        count = DBUtils.get_all_alive_container_count_for_mode(instance_mode=active_tab)
+        containers = DBUtils.get_all_alive_container_page_for_mode(
+            page_start,
+            page_end,
+            instance_mode=active_tab,
+        )
+        personal_count = DBUtils.get_all_alive_container_count_for_mode(instance_mode="personal")
+        shared_count = DBUtils.get_all_alive_container_count_for_mode(instance_mode="shared")
 
         pages = int(count / results_per_page) + (count % results_per_page > 0)
         return render_template("containers.html", containers=containers, pages=pages, curr_page=page,
-                               curr_page_start=page_start, configs=configs, mode=mode)
+                               curr_page_start=page_start, configs=configs, mode=mode,
+                               active_tab=active_tab, personal_count=personal_count, shared_count=shared_count)
 
     @owl_blueprint.route("/admin/containers", methods=['PATCH'])
     @admins_only
@@ -196,7 +219,10 @@ def load(app):
             c = OwlContainers.query.filter_by(id=container_id).first()
             if not c:
                 return jsonify({'success': False, 'msg': 'Container not found'})
-            ControlUtil.expired_container_for_challenge(user_id=c.user_id, challenge_id=c.challenge_id)
+            if str(getattr(c, "instance_mode", "personal") or "personal").lower() == "shared":
+                DBUtils.touch_shared_container(challenge_id=c.challenge_id, increment_renew=True)
+            else:
+                ControlUtil.expired_container_for_challenge(user_id=c.user_id, challenge_id=c.challenge_id)
         elif user_id:
             ControlUtil.expired_container(user_id=user_id)
         else:
@@ -246,20 +272,13 @@ def load(app):
                 active_users = DBUtils.get_active_shared_session_count(challenge_id=challenge_id, configs=configs)
 
                 if shared_rows and has_access:
-                    owner_user = shared_rows[0].user
-                    owner_obj = None
-                    if owner_user is not None:
-                        owner_obj = {
-                            "id": int(owner_user.id),
-                            "name": owner_user.name,
-                            "url": url_for('users.public', user_id=owner_user.id),
-                        }
+                    owner_obj = _shared_owner_payload()
 
                     return jsonify({
                         'success': True,
                         'ip': configs.get('frp_direct_ip_address', ""),
                         'containers_data': _serialize_container_rows(shared_rows, configs),
-                        'manage_owner_user_id': shared_rows[0].user_id,
+                        'manage_owner_user_id': None,
                         'owners': [owner_obj] if owner_obj else [],
                         'owner': owner_obj,
                         'effective_mode': effective_mode,
@@ -396,7 +415,7 @@ def load(app):
 
                     try:
                         result = ControlUtil.new_container(
-                            user_id=owner_user_id,
+                            user_id=None,
                             challenge_id=challenge_id,
                             prefix=configs.get("docker_flag_prefix"),
                             instance_mode="shared",
@@ -626,15 +645,15 @@ def load(app):
             if not shared_rows or not DBUtils.is_container_alive(shared_rows[0], configs):
                 continue
 
-            owner = shared_rows[0].user
+            owner = _shared_owner_payload()
             key = ("shared", int(challenge_id), str(shared_rows[0].docker_id))
             if key not in instances:
                 instances[key] = {
                     'challenge_id': int(challenge_id),
                     'challenge_name': shared_rows[0].challenge.name if getattr(shared_rows[0], 'challenge', None) else str(challenge_id),
-                    'owner_user_id': int(shared_rows[0].user_id),
-                    'owner_name': owner.name if owner else str(shared_rows[0].user_id),
-                    'owner_url': url_for('users.public', user_id=shared_rows[0].user_id),
+                    'owner_user_id': int(owner['id']),
+                    'owner_name': owner['name'],
+                    'owner_url': owner['url'],
                     'remaining_time': DBUtils.get_container_remaining_time(shared_rows[0], configs),
                     'instance_mode': 'shared',
                     'services': [],

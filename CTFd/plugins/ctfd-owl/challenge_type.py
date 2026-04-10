@@ -1,6 +1,7 @@
 import math
 
 from flask import Blueprint, current_app, Request
+from sqlalchemy import inspect as sa_inspect
 
 from CTFd.models import (
     db,
@@ -21,6 +22,7 @@ from CTFd.utils import get_config
 from CTFd.utils.modes import get_model
 from CTFd.utils.uploads import delete_file
 from CTFd.utils.user import get_ip
+from .utils.control_utils import ControlUtil
 from .utils.db_utils import DBUtils
 from .models import DynamicCheckChallenge, OwlContainers, OwlSharedSessions, SharedDynamicCheckChallenge
 
@@ -40,8 +42,56 @@ class BaseDynamicCheckValueChallenge(BaseChallenge):
     instance_mode = "personal"
 
     @classmethod
+    def _normalize_target_type(cls, raw_type):
+        target_type = str(raw_type or "").strip()
+        if target_type == SHARED_CHALLENGE_TYPE_ID:
+            return SHARED_CHALLENGE_TYPE_ID
+        return DynamicCheckValueChallenge.id
+
+    @classmethod
+    def _instance_mode_for_type(cls, target_type):
+        return "shared" if target_type == SHARED_CHALLENGE_TYPE_ID else "personal"
+
+    @classmethod
+    def _challenge_class_for_type(cls, challenge_type):
+        normalized_type = cls._normalize_target_type(challenge_type)
+        if normalized_type == SHARED_CHALLENGE_TYPE_ID:
+            return SharedDynamicCheckValueChallenge
+        return DynamicCheckValueChallenge
+
+    @classmethod
+    def _extract_challenge_id(cls, challenge):
+        try:
+            return int(sa_inspect(challenge).identity[0])
+        except Exception:
+            return int(challenge.id)
+
+    @classmethod
+    def _cleanup_instances_for_challenge(cls, challenge_id):
+        rows = OwlContainers.query.filter_by(challenge_id=challenge_id).all()
+        owner_ids = []
+        seen = set()
+
+        for row in rows:
+            marker = row.user_id
+            if marker in seen:
+                continue
+            seen.add(marker)
+            owner_ids.append(marker)
+
+        for owner_id in owner_ids:
+            try:
+                ControlUtil.destroy_container_for_challenge(user_id=owner_id, challenge_id=challenge_id)
+            except Exception:
+                pass
+
+        DBUtils.remove_shared_sessions_for_challenge(challenge_id=challenge_id)
+
+    @classmethod
     def read(cls, challenge):
-        challenge = cls.challenge_model.query.filter_by(id=challenge.id).first()
+        challenge_id = cls._extract_challenge_id(challenge)
+        challenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
+        effective_class = cls._challenge_class_for_type(getattr(challenge, "type", cls.id))
         data = {
             "id": challenge.id,
             "name": challenge.name,
@@ -54,33 +104,48 @@ class BaseDynamicCheckValueChallenge(BaseChallenge):
             "state": challenge.state,
             "max_attempts": challenge.max_attempts,
             "type": challenge.type,
-            "instance_mode": cls.instance_mode,
+            "instance_mode": effective_class.instance_mode,
             "type_data": {
-                "id": cls.id,
-                "name": cls.name,
-                "templates": cls.templates,
-                "scripts": cls.scripts,
+                "id": effective_class.id,
+                "name": effective_class.name,
+                "templates": effective_class.templates,
+                "scripts": effective_class.scripts,
             },
         }
         return data
 
     @classmethod
     def update(cls, challenge: challenge_model, request: Request):
-        data = request.form or request.get_json()
+        data = request.form or request.get_json() or {}
+        challenge_id = int(challenge.id)
+        current_type = str(getattr(challenge, "type", "") or "").strip()
+        target_type = cls._normalize_target_type(data.get("type", current_type))
+        target_instance_mode = cls._instance_mode_for_type(target_type)
+        should_cleanup_instances = (
+            current_type != target_type
+            or str(getattr(challenge, "instance_mode", "personal") or "personal").strip().lower() != target_instance_mode
+        )
+
+        if should_cleanup_instances:
+            cls._cleanup_instances_for_challenge(challenge_id=challenge_id)
+            challenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
+
         for attr, value in data.items():
+            if attr in ("type", "instance_mode", "reload_on_update_success"):
+                continue
             if attr in ("initial", "minimum", "decay"):
                 value = float(value)
             setattr(challenge, attr, value)
 
-        if hasattr(challenge, "instance_mode"):
-            challenge.instance_mode = cls.instance_mode
+        challenge.instance_mode = target_instance_mode
+        challenge.type = target_type
 
         model = get_model()
 
         solve_count = (
             Solves.query.join(model, Solves.account_id == model.id)
             .filter(
-                Solves.challenge_id == challenge.id,
+                Solves.challenge_id == challenge_id,
                 model.hidden is False,
                 model.banned is False,
             )
@@ -100,7 +165,7 @@ class BaseDynamicCheckValueChallenge(BaseChallenge):
         challenge.value = value
 
         db.session.commit()
-        return challenge
+        return DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
 
     @classmethod
     def delete(cls, challenge):

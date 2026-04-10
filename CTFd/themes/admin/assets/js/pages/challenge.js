@@ -175,6 +175,10 @@ $(() => {
   $("#challenge-update-container > form").submit(function (e) {
     e.preventDefault();
     var params = $(e.target).serializeJSON(true);
+    var shouldReloadAfterUpdate =
+      typeof window.CHALLENGE_TYPE === "string" &&
+      typeof params.type === "string" &&
+      params.type !== window.CHALLENGE_TYPE;
 
     CTFd.fetch("/api/v1/challenges/" + window.CHALLENGE_ID + "/flags", {
       method: "GET",
@@ -203,6 +207,10 @@ $(() => {
             })
             .then(function (response) {
               if (response.success) {
+                if (shouldReloadAfterUpdate) {
+                  window.location.reload();
+                  return;
+                }
                 $(".challenge-state").text(response.data.state);
                 switch (response.data.state) {
                   case "visible":
