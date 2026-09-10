@@ -10,6 +10,7 @@
 </div>
 {% endblock %}
 
+{% block name %}
 <div class="form-group">
     <label for="dirname">Dirname<br>
         <small class="form-text text-muted">
@@ -17,15 +18,6 @@
         </small>
     </label>
     <input type="text" class="form-control" name="dirname" placeholder="Enter challenge dirname">
-</div>
-<div class="form-group">
-    <label for="flag_count">Number of flags / tasks<br>
-        <small class="form-text text-muted">
-            How many linked tasks (and dynamic flags) this group has. The compose must expose
-            FLAG1..FLAG&lt;N&gt;. This parent is task #1; the rest are created automatically.
-        </small>
-    </label>
-    <input type="number" class="form-control" name="flag_count" value="3" min="1" placeholder="Enter number of flags">
 </div>
 <div class="form-group">
     <label for="flag_type" class="control-label">Flag Type</label>
@@ -40,6 +32,30 @@
     </small>
 </div>
 
+<hr>
+<div class="form-group">
+    <label for="flag_count">Number of flags / tasks<br>
+        <small class="form-text text-muted">
+            How many linked tasks (and dynamic flags) this group has. The compose must expose
+            FLAG1..FLAG&lt;N&gt;. This parent is task #1; the rest are created automatically.
+        </small>
+    </label>
+    <input type="number" class="form-control" name="flag_count" value="3" min="1" placeholder="Enter number of flags">
+</div>
+<hr>
+
+<div class="form-group">
+    <label>
+        Name:<br>
+        <small class="form-text text-muted">
+            The name of your challenge
+        </small>
+    </label>
+    <input type="text" class="form-control" name="name" placeholder="Enter challenge name">
+</div>
+{% endblock %}
+
+{% block value %}
 <div class="form-group">
     <label for="value">Initial Value<br>
         <small class="form-text text-muted">

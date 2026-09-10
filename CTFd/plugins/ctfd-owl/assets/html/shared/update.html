@@ -1,5 +1,6 @@
 {% extends "admin/challenges/update.html" %}
 
+{% block name %}
 <div class="alert alert-secondary" role="alert">
     This challenge uses one shared on-demand instance for all players. After the last disconnect, it remains available for
     the configured idle timeout before auto-destruction.
@@ -10,7 +11,7 @@
             The name of your challenge dirname
         </small>
     </label>
-    <input type="text" class="form-control chal-name" name="dirname" value="{{ challenge.dirname or '' }}">
+    <input type="text" class="form-control" name="dirname" value="{{ challenge.dirname or '' }}">
 </div>
 <div class="form-group">
     <label for="flag_type" class="control-label">Flag Type</label>
@@ -20,7 +21,16 @@
     </select>
 </div>
 <input type="hidden" name="instance_mode" value="shared">
+<div class="form-group">
+    <label>
+        Name<br>
+        <small class="form-text text-muted">Challenge Name</small>
+    </label>
+    <input type="text" class="form-control chal-name" name="name" value="{{ challenge.name }}">
+</div>
+{% endblock %}
 
+{% block value %}
 <div class="form-group">
     <label for="value">Current Value<br>
         <small class="form-text text-muted">
