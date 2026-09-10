@@ -17,10 +17,20 @@
     <label for="flag_type" class="control-label">Flag Type</label>
     <select class="form-control custom-select" name="flag_type">
         <option value="dynamic" {% if challenge.flag_type=="dynamic" %}selected{% endif %}>Dynamic</option>
+        <option value="semi-dynamic" {% if challenge.flag_type=="semi-dynamic" %}selected{% endif %}>Semi-Dynamic</option>
         <option value="static" {% if challenge.flag_type=="static" %}selected{% endif %}>Static</option>
     </select>
 </div>
-<input type="hidden" name="instance_mode" value="shared">
+<div class="form-group">
+    <label for="type" class="control-label">Instance Mode</label>
+    <select class="form-control custom-select" name="type">
+        <option value="dynamic_check_docker" {% if challenge.type=="dynamic_check_docker" %}selected{% endif %}>Personal (per-user instance)</option>
+        <option value="dynamic_check_docker_shared" {% if challenge.type=="dynamic_check_docker_shared" %}selected{% endif %}>Shared (one common instance)</option>
+    </select>
+    <small class="form-text text-muted">
+        Switching mode destroys running instances of this challenge. Refresh the page after saving to load the new mode's form.
+    </small>
+</div>
 <div class="form-group">
     <label>
         Name<br>

@@ -103,6 +103,34 @@ class DockerUtils:
         return socket
 
     @staticmethod
+    def _is_shared_instance(challenge) -> bool:
+        instance_mode = str(getattr(challenge, "instance_mode", "") or "").strip().lower()
+        if instance_mode:
+            return instance_mode == "shared"
+        return str(getattr(challenge, "type", "") or "").strip().lower() == "dynamic_check_docker_shared"
+
+    @staticmethod
+    def get_instance_basename(user_id, challenge_id, configs=None, challenge=None):
+        """Compose project / container / run-dir base name for an instance.
+
+        Always includes ``c{challenge_id}`` so two challenges sharing a dirname don't
+        collide. Shared instances are not tied to a launching user, so they are named
+        by ``shared`` instead of ``u{user_id}``.
+        """
+        cfg = configs or DBUtils.get_all_configs()
+        chal = challenge or DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
+        dirname = chal.dirname.split("/")[-1]
+        prefix = str(cfg.get("docker_flag_prefix") or "").strip()
+
+        if DockerUtils._is_shared_instance(chal):
+            owner = "shared"
+        else:
+            owner = "u{}".format(user_id)
+
+        raw_name = "{}_{}_c{}_{}".format(prefix, owner, challenge_id, dirname)
+        return raw_name.lstrip("_").lower(), dirname
+
+    @staticmethod
     def resolve_flag(challenge, challenge_id):
         """Resolve a single flag for a challenge based on its flag_type.
 
@@ -157,9 +185,12 @@ class DockerUtils:
 
             socket = DockerUtils.get_socket()
             sname = os.path.join(plugin_root, "source", challenge.dirname)
-            dirname = challenge.dirname.split("/")[-1]
-            prefix = configs.get("docker_flag_prefix")
-            name = "{}_u{}_c{}_{}".format(prefix, user_id, challenge_id, dirname).lower()
+            name, dirname = DockerUtils.get_instance_basename(
+                user_id=user_id,
+                challenge_id=challenge_id,
+                configs=configs,
+                challenge=challenge,
+            )
             problem_docker_run_dir = os.environ['PROBLEM_DOCKER_RUN_FOLDER']
             dname = os.path.join(problem_docker_run_dir, name)
             min_port, max_port = int(configs.get("frp_direct_port_minimum")), int(
@@ -239,9 +270,12 @@ class DockerUtils:
             configs = DBUtils.get_all_configs()
             socket = DockerUtils.get_socket()
             challenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
-            dirname = challenge.dirname.split("/")[-1]
-            prefix = configs.get("docker_flag_prefix")
-            name = "{}_u{}_c{}_{}".format(prefix, user_id, challenge_id, dirname).lower()
+            name, _dirname = DockerUtils.get_instance_basename(
+                user_id=user_id,
+                challenge_id=challenge_id,
+                configs=configs,
+                challenge=challenge,
+            )
             problem_docker_run_dir = os.environ['PROBLEM_DOCKER_RUN_FOLDER']
             dname = os.path.join(problem_docker_run_dir, name)
         except Exception as e:

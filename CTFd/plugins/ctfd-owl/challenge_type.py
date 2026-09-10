@@ -21,6 +21,7 @@ from CTFd.utils import get_config
 from CTFd.utils.modes import get_model
 from CTFd.utils.uploads import delete_file
 from CTFd.utils.user import get_ip
+from .utils.control_utils import ControlUtil
 from .utils.db_utils import DBUtils
 from .models import (
     DynamicCheckChallenge,
@@ -45,6 +46,44 @@ class BaseDynamicCheckValueChallenge(BaseChallenge):
     )
     challenge_model = DynamicCheckChallenge
     instance_mode = "personal"
+
+    _SWITCHABLE_TYPES = ("dynamic_check_docker", SHARED_CHALLENGE_TYPE_ID)
+
+    @classmethod
+    def _normalize_switch_type(cls, raw_type, current_type):
+        """Resolve the target type for a personal<->shared switch.
+
+        Only personal and shared may switch into each other; anything else (e.g. a
+        multitask challenge, which uses its own update flow) keeps its current type.
+        """
+        target_type = str(raw_type or "").strip()
+        if current_type not in cls._SWITCHABLE_TYPES:
+            return current_type
+        if target_type == SHARED_CHALLENGE_TYPE_ID:
+            return SHARED_CHALLENGE_TYPE_ID
+        if target_type == "dynamic_check_docker":
+            return "dynamic_check_docker"
+        return current_type
+
+    @classmethod
+    def _cleanup_instances_for_challenge(cls, challenge_id):
+        """Tear down every running instance of a challenge (used when switching mode)."""
+        rows = OwlContainers.query.filter_by(challenge_id=challenge_id).all()
+        owner_ids = []
+        seen = set()
+        for row in rows:
+            if row.user_id in seen:
+                continue
+            seen.add(row.user_id)
+            owner_ids.append(row.user_id)
+
+        for owner_id in owner_ids:
+            try:
+                ControlUtil.destroy_container_for_challenge(user_id=owner_id, challenge_id=challenge_id)
+            except Exception:
+                pass
+
+        DBUtils.remove_shared_sessions_for_challenge(challenge_id=challenge_id)
 
     @classmethod
     def read(cls, challenge):
@@ -73,21 +112,33 @@ class BaseDynamicCheckValueChallenge(BaseChallenge):
 
     @classmethod
     def update(cls, challenge: challenge_model, request: Request):
-        data = request.form or request.get_json()
+        data = request.form or request.get_json() or {}
+        challenge_id = int(challenge.id)
+        current_type = str(getattr(challenge, "type", "") or "").strip()
+        target_type = cls._normalize_switch_type(data.get("type", current_type), current_type)
+        target_instance_mode = "shared" if target_type == SHARED_CHALLENGE_TYPE_ID else "personal"
+        switching = current_type != target_type
+
+        if switching:
+            cls._cleanup_instances_for_challenge(challenge_id=challenge_id)
+            challenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
+
         for attr, value in data.items():
+            if attr in ("type", "instance_mode"):
+                continue
             if attr in ("initial", "minimum", "decay"):
                 value = float(value)
             setattr(challenge, attr, value)
 
-        if hasattr(challenge, "instance_mode"):
-            challenge.instance_mode = cls.instance_mode
+        challenge.instance_mode = target_instance_mode
+        challenge.type = target_type
 
         model = get_model()
 
         solve_count = (
             Solves.query.join(model, Solves.account_id == model.id)
             .filter(
-                Solves.challenge_id == challenge.id,
+                Solves.challenge_id == challenge_id,
                 model.hidden is False,
                 model.banned is False,
             )
@@ -107,7 +158,7 @@ class BaseDynamicCheckValueChallenge(BaseChallenge):
         challenge.value = value
 
         db.session.commit()
-        return challenge
+        return DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
 
     @classmethod
     def delete(cls, challenge):
