@@ -46,10 +46,10 @@ class ControlUtil:
                 log(
                     "owl",
                     "[{date}] {msg}",
-                    msg=f'Container name: {prefix.lower()}_user{user_id}_{rq[4]}_{container["service"]}_1',
+                    msg=f'Container name: {rq[4]}-{container["service"]}-1',
                 )
                 DBUtils.new_container(user_id, challenge_id, flag=rq[2], port=container["port"], docker_id=rq[0],
-                                      ip=rq[3], name=f'{prefix.lower()}_user{user_id}_{rq[4]}-{container["service"]}-1',
+                                      ip=rq[3], name=f'{rq[4]}-{container["service"]}-1',
                                       instance_mode=instance_mode,
                                       labels=container.get("labels", "{}"))
             return True
@@ -87,10 +87,10 @@ class ControlUtil:
                 log(
                     "owl",
                     "[{date}] {msg}",
-                    msg=f'Container name: {prefix.lower()}_user{user_id}_{rq[4]}_{container["service"]}_1 (task {task_id}, flag {idx})',
+                    msg=f'Container name: {rq[4]}-{container["service"]}-1 (task {task_id}, flag {idx})',
                 )
                 DBUtils.new_container(user_id, task_id, flag=task_flag, port=container["port"], docker_id=rq[0],
-                                      ip=rq[3], name=f'{prefix.lower()}_user{user_id}_{rq[4]}-{container["service"]}-1',
+                                      ip=rq[3], name=f'{rq[4]}-{container["service"]}-1',
                                       instance_mode=instance_mode,
                                       labels=container.get("labels", "{}"))
         return True

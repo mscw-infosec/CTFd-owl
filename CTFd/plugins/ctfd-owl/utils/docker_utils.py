@@ -159,7 +159,7 @@ class DockerUtils:
             sname = os.path.join(plugin_root, "source", challenge.dirname)
             dirname = challenge.dirname.split("/")[-1]
             prefix = configs.get("docker_flag_prefix")
-            name = "{}_user{}_{}".format(prefix, user_id, dirname).lower()
+            name = "{}_u{}_c{}_{}".format(prefix, user_id, challenge_id, dirname).lower()
             problem_docker_run_dir = os.environ['PROBLEM_DOCKER_RUN_FOLDER']
             dname = os.path.join(problem_docker_run_dir, name)
             min_port, max_port = int(configs.get("frp_direct_port_minimum")), int(
@@ -224,7 +224,7 @@ class DockerUtils:
                 msg=name + " up."
             )
             docker_id = str(uuid.uuid3(uuid.NAMESPACE_DNS, name)).replace("-", "")
-            return docker_id, ports, flag, challenge.redirect_type, dirname
+            return docker_id, ports, flag, challenge.redirect_type, name
         except subprocess.CalledProcessError as e:
             log("owl",
                 'Stdout: {out}\nStderr: {err}',
@@ -241,7 +241,7 @@ class DockerUtils:
             challenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
             dirname = challenge.dirname.split("/")[-1]
             prefix = configs.get("docker_flag_prefix")
-            name = "{}_user{}_{}".format(prefix, user_id, dirname).lower()
+            name = "{}_u{}_c{}_{}".format(prefix, user_id, challenge_id, dirname).lower()
             problem_docker_run_dir = os.environ['PROBLEM_DOCKER_RUN_FOLDER']
             dname = os.path.join(problem_docker_run_dir, name)
         except Exception as e:

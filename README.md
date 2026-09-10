@@ -39,7 +39,7 @@ networks:
 
 That said, if your challenge has containers `service1` and `service2`, and `service1` makes an HTTP request to `http://service2`, then when multiple participants run the same challenge there may be multiple containers named `service2` in the same network. In that case, Docker DNS can return multiple A records, leading to undefined behavior.
 
-To prevent this, if you make a challenge with multiple services that connect to each other by name, put services that don't need to be proxied into the `CTFD_PRIVATE_NETWORK` network, and don't put them in `net`. `CTFD_PRIVATE_NETWORK` will be replaced with `{prefix}_user{user_id}_{dirname}` while setting up containers.
+To prevent this, if you make a challenge with multiple services that connect to each other by name, put services that don't need to be proxied into the `CTFD_PRIVATE_NETWORK` network, and don't put them in `net`. `CTFD_PRIVATE_NETWORK` will be replaced with `{prefix}_u{user_id}_c{challenge_id}_{dirname}` while setting up containers.
 
 ## Installation
 
