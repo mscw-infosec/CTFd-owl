@@ -5,12 +5,11 @@
     Dynamic multitask challenges launch a single container that backs several linked tasks.
     Each task gets its own dynamic flag, injected into the container as
     <code>FLAG1</code>, <code>FLAG2</code>, ... <code>FLAGN</code>. Creating this parent task
-    auto-creates the remaining child tasks (hidden by default); you can add, remove or edit
-    them afterwards.
+    auto-creates the remaining child tasks (they inherit the parent's visibility state); you can
+    add, remove or edit them afterwards.
 </div>
 {% endblock %}
 
-{% block plugin_additions %}
 <div class="form-group">
     <label for="dirname">Dirname<br>
         <small class="form-text text-muted">
@@ -29,7 +28,7 @@
     <input type="number" class="form-control" name="flag_count" value="3" min="1" placeholder="Enter number of flags">
 </div>
 <div class="form-group">
-    <label for="value" class="control-label">Flag Type</label>
+    <label for="flag_type" class="control-label">Flag Type</label>
     <select class="form-control custom-select" name="flag_type">
         <option value="dynamic">Dynamic</option>
         <option value="semi-dynamic">Semi-Dynamic</option>
@@ -40,9 +39,7 @@
         injected as its <code>FLAG&lt;index&gt;</code> and is what solves it.
     </small>
 </div>
-{% endblock %}
 
-{% block value %}
 <div class="form-group">
     <label for="value">Initial Value<br>
         <small class="form-text text-muted">
@@ -50,11 +47,10 @@
         </small>
     </label>
     <input type="number" class="form-control" name="value" placeholder="Enter value" required>
-
 </div>
 
 <div class="form-group">
-    <label for="value">Decay Limit<br>
+    <label for="decay">Decay Limit<br>
         <small class="form-text text-muted">
             The amount of solves before the challenge reaches its minimum value (minimum 1)
         </small>
@@ -63,7 +59,7 @@
 </div>
 
 <div class="form-group">
-    <label for="value">Minimum Value<br>
+    <label for="minimum">Minimum Value<br>
         <small class="form-text text-muted">
             This is the lowest that the challenge can be worth
         </small>

@@ -1,6 +1,5 @@
 {% extends "admin/challenges/update.html" %}
 
-{% block plugin_additions %}
 <div class="alert alert-secondary" role="alert">
     This challenge uses one shared on-demand instance for all players. After the last disconnect, it remains available for
     the configured idle timeout before auto-destruction.
@@ -11,19 +10,17 @@
             The name of your challenge dirname
         </small>
     </label>
-    <input type="text" class="form-control chal-name" name="dirname" value="{{ challenge.dirname }}">
+    <input type="text" class="form-control chal-name" name="dirname" value="{{ challenge.dirname or '' }}">
 </div>
 <div class="form-group">
-    <label for="value" class="control-label">Flag Type</label>
+    <label for="flag_type" class="control-label">Flag Type</label>
     <select class="form-control custom-select" name="flag_type">
         <option value="dynamic" {% if challenge.flag_type=="dynamic" %}selected{% endif %}>Dynamic</option>
         <option value="static" {% if challenge.flag_type=="static" %}selected{% endif %}>Static</option>
     </select>
 </div>
 <input type="hidden" name="instance_mode" value="shared">
-{% endblock %}
 
-{% block value %}
 <div class="form-group">
     <label for="value">Current Value<br>
         <small class="form-text text-muted">
@@ -34,7 +31,7 @@
 </div>
 
 <div class="form-group">
-    <label for="value">Initial Value<br>
+    <label for="initial">Initial Value<br>
         <small class="form-text text-muted">
             This is how many points the challenge was worth initially.
         </small>
@@ -43,7 +40,7 @@
 </div>
 
 <div class="form-group">
-    <label for="value">Decay Limit<br>
+    <label for="decay">Decay Limit<br>
         <small class="form-text text-muted">
             The amount of solves before the challenge reaches its minimum value (minimum 1)
         </small>
@@ -52,7 +49,7 @@
 </div>
 
 <div class="form-group">
-    <label for="value">Minimum Value<br>
+    <label for="minimum">Minimum Value<br>
         <small class="form-text text-muted">
             This is the lowest that the challenge can be worth
         </small>
