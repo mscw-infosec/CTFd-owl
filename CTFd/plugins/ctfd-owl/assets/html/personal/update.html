@@ -1,24 +1,39 @@
 {% extends "admin/challenges/update.html" %}
 
-{% block plugin_additions %}
+{% block name %}
 <div class="form-group">
     <label for="dirname">Dirname<br>
         <small class="form-text text-muted">
             The name of your challenge dirname
         </small>
     </label>
-    <input type="text" class="form-control chal-name" name="dirname" value="{{ challenge.dirname }}">
+    <input type="text" class="form-control" name="dirname" value="{{ challenge.dirname or '' }}">
 </div>
 <div class="form-group">
-    <label for="value" class="control-label">Flag Type</label>
+    <label for="flag_type" class="control-label">Flag Type</label>
     <select class="form-control custom-select" name="flag_type">
         <option value="dynamic" {% if challenge.flag_type=="dynamic" %}selected{% endif %}>Dynamic</option>
-        <option value="semi-dynamic" {% if challenge.flag_type=="semi-dynamic" %}selected{% endif %}>Semi-Dynamic
-        </option>
+        <option value="semi-dynamic" {% if challenge.flag_type=="semi-dynamic" %}selected{% endif %}>Semi-Dynamic</option>
         <option value="static" {% if challenge.flag_type=="static" %}selected{% endif %}>Static</option>
     </select>
 </div>
-<input type="hidden" name="instance_mode" value="personal">
+<div class="form-group">
+    <label for="type" class="control-label">Instance Mode</label>
+    <select class="form-control custom-select" name="type">
+        <option value="dynamic_check_docker" {% if challenge.type=="dynamic_check_docker" %}selected{% endif %}>Personal (per-user instance)</option>
+        <option value="dynamic_check_docker_shared" {% if challenge.type=="dynamic_check_docker_shared" %}selected{% endif %}>Shared (one common instance)</option>
+    </select>
+    <small class="form-text text-muted">
+        Switching mode destroys running instances of this challenge. Refresh the page after saving to load the new mode's form.
+    </small>
+</div>
+<div class="form-group">
+    <label>
+        Name<br>
+        <small class="form-text text-muted">Challenge Name</small>
+    </label>
+    <input type="text" class="form-control chal-name" name="name" value="{{ challenge.name }}">
+</div>
 {% endblock %}
 
 {% block value %}
@@ -32,7 +47,7 @@
 </div>
 
 <div class="form-group">
-    <label for="value">Initial Value<br>
+    <label for="initial">Initial Value<br>
         <small class="form-text text-muted">
             This is how many points the challenge was worth initially.
         </small>
@@ -41,7 +56,7 @@
 </div>
 
 <div class="form-group">
-    <label for="value">Decay Limit<br>
+    <label for="decay">Decay Limit<br>
         <small class="form-text text-muted">
             The amount of solves before the challenge reaches its minimum value (minimum 1)
         </small>
@@ -50,7 +65,7 @@
 </div>
 
 <div class="form-group">
-    <label for="value">Minimum Value<br>
+    <label for="minimum">Minimum Value<br>
         <small class="form-text text-muted">
             This is the lowest that the challenge can be worth
         </small>

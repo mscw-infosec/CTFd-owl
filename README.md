@@ -39,7 +39,7 @@ networks:
 
 That said, if your challenge has containers `service1` and `service2`, and `service1` makes an HTTP request to `http://service2`, then when multiple participants run the same challenge there may be multiple containers named `service2` in the same network. In that case, Docker DNS can return multiple A records, leading to undefined behavior.
 
-To prevent this, if you make a challenge with multiple services that connect to each other by name, put services that don't need to be proxied into the `CTFD_PRIVATE_NETWORK` network, and don't put them in `net`. `CTFD_PRIVATE_NETWORK` will be replaced with `{prefix}_user{user_id}_{dirname}` while setting up containers.
+To prevent this, if you make a challenge with multiple services that connect to each other by name, put services that don't need to be proxied into the `CTFD_PRIVATE_NETWORK` network, and don't put them in `net`. `CTFD_PRIVATE_NETWORK` will be replaced with `{prefix}_u{user_id}_c{challenge_id}_{dirname}` while setting up containers.
 
 ## Installation
 
@@ -142,8 +142,18 @@ transport.poolCount = 1
 - An example of a common task is given in the `CTFd/plugins/ctfd-owl/source/tasks/sanity-task`.
 - An example of a task with a dynamic flag is given in `CTFd/plugins/ctfd-owl/source/tasks/dynamic-task`.
 - An example of an SSH task is given in `CTFd/plugins/ctfd-owl/source/tasks/ssh-task`.
+- An example of a multitask challenge (one container, several linked tasks and flags) is given in `CTFd/plugins/ctfd-owl/source/tasks/dynamic-multitask`.
 
 In all cases the container receives `FLAG` automatically (see `FLAG=${FLAG}` in the example compose files).
+
+#### Dynamic multitask (`dynamic_check_docker_multi`)
+
+A multitask challenge launches a **single container that backs several linked tasks**. Each task gets its own per-instance dynamic flag, injected into the container as `FLAG1`, `FLAG2`, ... `FLAGN` (`FLAG` equals `FLAG1` for backward compatibility). The container is shown as running on **every** task in the group, and each task only accepts its own flag.
+
+- When creating the challenge, pick type **Dynamic multitask**, set the **Dirname** (which holds the shared docker-compose) and the **Number of flags / tasks** (N). The challenge you create is the group parent (task #1); the remaining N−1 tasks are auto-created as child challenges that inherit the parent's visibility state (and follow it when you later change it) — edit them as needed.
+- The compose must expose `FLAG1..FLAGN` as environment variables (see the `dynamic-multitask` example). Task `k` is solved with the value of `FLAG<k>`.
+- Deploying, renewing or destroying the instance from any task in the group affects the whole group; the group counts as a single instance against per-user/per-team limits.
+- You can add, remove or renumber tasks afterwards from the challenge update page (`Flag index` / `Parent challenge id`), e.g. to end up with 2 or 4 flags instead of 3.
 
 Semi-dynamic flags are defined as a regular CTFd plaintext flag template, for example:
 

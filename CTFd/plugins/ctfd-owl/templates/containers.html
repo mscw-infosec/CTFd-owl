@@ -27,6 +27,21 @@
 				</ul>
 			</div>
 			<div class="col-md-9">
+				<nav class="nav nav-tabs nav-fill" role="tablist">
+					<a class="nav-item nav-link{% if active_tab == 'personal' %} active{% endif %}"
+					   href="/plugins/ctfd-owl/admin/containers?tab=personal"
+					   role="tab" aria-selected="{{ 'true' if active_tab == 'personal' else 'false' }}">
+						Containers
+						<span class="badge badge-pill badge-secondary ml-1">{{ personal_count }}</span>
+					</a>
+					<a class="nav-item nav-link{% if active_tab == 'shared' %} active{% endif %}"
+					   href="/plugins/ctfd-owl/admin/containers?tab=shared"
+					   role="tab" aria-selected="{{ 'true' if active_tab == 'shared' else 'false' }}">
+						Shared Containers
+						<span class="badge badge-pill badge-secondary ml-1">{{ shared_count }}</span>
+					</a>
+				</nav>
+				<div class="pt-4">
 				<div class="float-right pb-3">
 					<div class="btn-group" role="group">
 						<button type="button" class="btn btn-outline-secondary"
@@ -39,6 +54,7 @@
 						</button>
 					</div>
 				</div>
+				{% if containers %}
 				<table class="table table-striped border">
 					<thead>
 					<tr>
@@ -48,7 +64,8 @@
 							</div>
 						</th>
 						<th class="sort-col text-center"><b>ID</b></th>
-						{% if mode == 'users' %}
+						{% if active_tab == 'shared' %}
+						{% elif mode == 'users' %}
 							<th class="sort-col text-center"><b>User</b></th>
 						{% else %}
 							<th class="sort-col text-center"><b>Team</b></th>
@@ -67,21 +84,28 @@
 						<tr>
 							<td class="border-right" data-checkbox>
 								<div class="form-check text-center">&nbsp;
-									<input type="checkbox" class="form-check-input" data-user-id="{{ container.user.id }}" data-container-id="{{ container.id }}">
+									<input type="checkbox" class="form-check-input" data-user-id="{{ '' if container.instance_mode == 'shared' else (container.user_id if container.user_id is not none else '') }}" data-container-id="{{ container.id }}">
 								</div>
 							</td>
 							<td class="text-center">
 								{{ container.id }}
 							</td>
-							{% if mode == 'users' %}
+							{% if active_tab == 'shared' %}
+							{% elif mode == 'users' %}
 								<td class="text-center">
-									<a href="{{ url_for('admin.users_detail', user_id=container.user_id) }}">
-										{{ container.user.name | truncate(12) }}
-									</a>
+									{% if container.instance_mode == 'shared' %}
+										Shared
+									{% elif container.user %}
+										<a href="{{ url_for('admin.users_detail', user_id=container.user_id) }}">
+											{{ container.user.name | truncate(12) }}
+										</a>
+									{% else %}
+										—
+									{% endif %}
 								</td>
 							{% else %}
 								<td class="text-center">
-									{% if container.user.team_id %}
+									{% if container.user and container.user.team_id %}
 										<a href="{{ url_for('admin.teams_detail', team_id=container.user.team_id) }}">
 											{{ (container.user.team.name if container.user.team else ('Team ' ~ container.user.team_id)) | truncate(18) }}
 										</a>
@@ -90,9 +114,15 @@
 									{% endif %}
 								</td>
 								<td class="text-center">
-									<a href="{{ url_for('admin.users_detail', user_id=container.user_id) }}">
-										{{ container.user.name | truncate(12) }}
-									</a>
+									{% if container.instance_mode == 'shared' %}
+										Shared
+									{% elif container.user %}
+										<a href="{{ url_for('admin.users_detail', user_id=container.user_id) }}">
+											{{ container.user.name | truncate(12) }}
+										</a>
+									{% else %}
+										—
+									{% endif %}
 								</td>
 							{% endif %}
 							<td class="text-center">
@@ -119,14 +149,14 @@
                             <td class="text-center">
                                 {{ container.renew_count }}&nbsp;
                                 <a class="renew-container" container-id="{{ container.id }}" data-toggle="tooltip"
-                                       user-id="{{ container.user.id }}" data-placement="top"
+                                       user-id="{{ '' if container.instance_mode == 'shared' else (container.user_id if container.user_id is not none else '') }}" data-placement="top"
                                        challenge-id="{{ container.challenge_id }}" title="Renew Container #{{ container.id }}">
                                     <i class="fas fa-sync"></i>
                                 </a>
                             </td>
                             <td class="text-center">
                                 <a class="delete-container" container-id="{{ container.id }}" data-toggle="tooltip"
-                                     user-id="{{ container.user.id }}" data-placement="top"
+                                     user-id="{{ '' if container.instance_mode == 'shared' else (container.user_id if container.user_id is not none else '') }}" data-placement="top"
                                      title="Destroy Container #{{ container.id }}">
                                     <i class="fas fa-times"></i>
                                 </a>
@@ -135,6 +165,12 @@
 					{% endfor %}
 					</tbody>
 				</table>
+				{% else %}
+				<div class="alert alert-secondary text-center mb-0" role="alert">
+					No {{ 'shared ' if active_tab == 'shared' else '' }}containers are running.
+				</div>
+				{% endif %}
+				</div>
 			</div>
 		</div>
 		{% if pages > 1 %}
@@ -143,19 +179,19 @@
 					<div class="text-center">Page
 						<br>
 						{% if curr_page != 1 %}
-							<a href="/plugins/ctfd-owl/admin/containers?page={{ curr_page - 1 }}">
+							<a href="/plugins/ctfd-owl/admin/containers?tab={{ active_tab }}&page={{ curr_page - 1 }}">
 								&lt;&lt;&lt;
 							</a>
 						{% endif %}
 						{% for page in range(1, pages + 1) %}
 							{% if curr_page != page %}
-								<a href="/plugins/ctfd-owl/admin/containers?page={{ page }}">{{ page }}</a>
+								<a href="/plugins/ctfd-owl/admin/containers?tab={{ active_tab }}&page={{ page }}">{{ page }}</a>
 							{% else %}
 								<b>{{ page }}</b>
 							{% endif %}
 						{% endfor %}
 						{% if curr_page != pages %}
-							<a href="/plugins/ctfd-owl/admin/containers?page={{ curr_page + 1 }}">
+							<a href="/plugins/ctfd-owl/admin/containers?tab={{ active_tab }}&page={{ curr_page + 1 }}">
 								&gt;&gt;&gt;
 							</a>
 						{% endif %}
@@ -170,4 +206,3 @@
 	<script defer src="{{ url_for('plugins.ctfd-owl.assets', path='js/notifications/index.js') }}"></script>
   <script defer src="{{ url_for('plugins.ctfd-owl.assets', path='js/containers.js') }}"></script>
 {% endblock %}
-

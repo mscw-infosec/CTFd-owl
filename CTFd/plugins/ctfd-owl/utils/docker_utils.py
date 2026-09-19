@@ -103,38 +103,94 @@ class DockerUtils:
         return socket
 
     @staticmethod
-    def up_docker_compose(user_id, challenge_id):
+    def _is_shared_instance(challenge) -> bool:
+        instance_mode = str(getattr(challenge, "instance_mode", "") or "").strip().lower()
+        if instance_mode:
+            return instance_mode == "shared"
+        return str(getattr(challenge, "type", "") or "").strip().lower() == "dynamic_check_docker_shared"
+
+    @staticmethod
+    def get_instance_basename(user_id, challenge_id, configs=None, challenge=None):
+        """Compose project / container / run-dir base name for an instance.
+
+        Always includes ``c{challenge_id}`` so two challenges sharing a dirname don't
+        collide. Shared instances are not tied to a launching user, so they are named
+        by ``shared`` instead of ``u{user_id}``.
+        """
+        cfg = configs or DBUtils.get_all_configs()
+        chal = challenge or DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
+        dirname = chal.dirname.split("/")[-1]
+        prefix = str(cfg.get("docker_flag_prefix") or "").strip()
+
+        if DockerUtils._is_shared_instance(chal):
+            owner = "shared"
+        else:
+            owner = "u{}".format(user_id)
+
+        raw_name = "{}_{}_c{}_{}".format(prefix, owner, challenge_id, dirname)
+        return raw_name.lstrip("_").lower(), dirname
+
+    @staticmethod
+    def resolve_flag(challenge, challenge_id):
+        """Resolve a single flag for a challenge based on its flag_type.
+
+        For dynamic challenges each call yields a fresh unique flag; for
+        semi-dynamic it renders the stored template; for static it returns the
+        stored CTFd flag content.
+        """
+        if challenge.flag_type == 'static':
+            return Flags.query.filter_by(challenge_id=challenge_id).first_or_404().content
+
+        # Dynamic / semi-dynamic mode.
+        # Semi-dynamic uses a flag template stored as a regular CTFd flag containing $[!gen!] placeholders.
+        flag_record = Flags.query.filter_by(challenge_id=challenge_id).first()
+        template = (flag_record.content if flag_record else "")
+
+        if challenge.flag_type == 'semi-dynamic':
+            if not template:
+                raise ValueError("Semi-dynamic flag mode requires a flag template")
+            if not DockerUtils.GEN_PLACEHOLDER.search(template):
+                raise ValueError("Semi-dynamic flag template must contain $[!gen!] or $[!gen:N!] placeholder")
+            return DockerUtils.gen_flag_from_template(template)
+
+        # Backward compatible: allow semi-dynamic placeholders even when flag_type is just 'dynamic'.
+        if template and DockerUtils.GEN_PLACEHOLDER.search(template):
+            return DockerUtils.gen_flag_from_template(template)
+        return DockerUtils.gen_flag()
+
+    @staticmethod
+    def up_docker_compose(user_id, challenge_id, flag_specs=None):
+        """Launch a challenge's docker-compose.
+
+        When ``flag_specs`` is provided (a multitask group) as a ``{index: challenge_id}``
+        mapping, one flag is resolved per index from that task's own challenge id and
+        exported as ``FLAG<index>``; the returned flag value is then a ``{index: flag}``
+        dict instead of a single string. Resolving per task id makes static (and
+        semi-dynamic) flags come from each task's own CTFd flag/template, while dynamic
+        flags stay per-instance random. ``FLAG`` is always exported (set to the
+        lowest-index flag) for backward compatibility.
+        """
         try:
             configs = DBUtils.get_all_configs()
             plugin_root = DockerUtils._get_plugin_root_dir()
             challenge: DynamicCheckChallenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
 
-            if challenge.flag_type == 'static':
-                flag = Flags.query.filter_by(challenge_id=challenge_id).first_or_404().content
+            if flag_specs is not None:
+                flag = {
+                    int(i): DockerUtils.resolve_flag(challenge, task_cid)
+                    for i, task_cid in flag_specs.items()
+                }
             else:
-                # Dynamic / semi-dynamic mode.
-                # Semi-dynamic uses a flag template stored as a regular CTFd flag containing $[!gen!] placeholders.
-                flag_record = Flags.query.filter_by(challenge_id=challenge_id).first()
-                template = (flag_record.content if flag_record else "")
-
-                if challenge.flag_type == 'semi-dynamic':
-                    if not template:
-                        raise ValueError("Semi-dynamic flag mode requires a flag template")
-                    if not DockerUtils.GEN_PLACEHOLDER.search(template):
-                        raise ValueError("Semi-dynamic flag template must contain $[!gen!] or $[!gen:N!] placeholder")
-                    flag = DockerUtils.gen_flag_from_template(template)
-                else:
-                    # Backward compatible: allow semi-dynamic placeholders even when flag_type is just 'dynamic'.
-                    if template and DockerUtils.GEN_PLACEHOLDER.search(template):
-                        flag = DockerUtils.gen_flag_from_template(template)
-                    else:
-                        flag = DockerUtils.gen_flag()
+                flag = DockerUtils.resolve_flag(challenge, challenge_id)
 
             socket = DockerUtils.get_socket()
             sname = os.path.join(plugin_root, "source", challenge.dirname)
-            dirname = challenge.dirname.split("/")[-1]
-            prefix = configs.get("docker_flag_prefix")
-            name = "{}_user{}_{}".format(prefix, user_id, dirname).lower()
+            name, dirname = DockerUtils.get_instance_basename(
+                user_id=user_id,
+                challenge_id=challenge_id,
+                configs=configs,
+                challenge=challenge,
+            )
             problem_docker_run_dir = os.environ['PROBLEM_DOCKER_RUN_FOLDER']
             dname = os.path.join(problem_docker_run_dir, name)
             min_port, max_port = int(configs.get("frp_direct_port_minimum")), int(
@@ -182,8 +238,15 @@ class DockerUtils:
             process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # up docker-compose
-            command = "export FLAG='{}' && cd ".format(
-                flag) + dname + " && sed -i \'s/CTFD_PRIVATE_NETWORK/" + name + "/\' run.yml " + "&& export DOCKER_HOST='{}' && docker compose -f run.yml up -d".format(
+            if isinstance(flag, dict):
+                # Multitask: export FLAG<index> for each flag, and FLAG=lowest index for compat.
+                primary = flag[min(flag.keys())]
+                exports = "export FLAG='{}'".format(primary)
+                for i in sorted(flag.keys()):
+                    exports += " && export FLAG{}='{}'".format(i, flag[i])
+            else:
+                exports = "export FLAG='{}'".format(flag)
+            command = exports + " && cd " + dname + " && sed -i \'s/CTFD_PRIVATE_NETWORK/" + name + "/\' run.yml " + "&& export DOCKER_HOST='{}' && docker compose -f run.yml up -d".format(
                 socket)
             process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             log(
@@ -192,7 +255,7 @@ class DockerUtils:
                 msg=name + " up."
             )
             docker_id = str(uuid.uuid3(uuid.NAMESPACE_DNS, name)).replace("-", "")
-            return docker_id, ports, flag, challenge.redirect_type, dirname
+            return docker_id, ports, flag, challenge.redirect_type, name
         except subprocess.CalledProcessError as e:
             log("owl",
                 'Stdout: {out}\nStderr: {err}',
@@ -207,9 +270,12 @@ class DockerUtils:
             configs = DBUtils.get_all_configs()
             socket = DockerUtils.get_socket()
             challenge = DynamicCheckChallenge.query.filter_by(id=challenge_id).first_or_404()
-            dirname = challenge.dirname.split("/")[-1]
-            prefix = configs.get("docker_flag_prefix")
-            name = "{}_user{}_{}".format(prefix, user_id, dirname).lower()
+            name, _dirname = DockerUtils.get_instance_basename(
+                user_id=user_id,
+                challenge_id=challenge_id,
+                configs=configs,
+                challenge=challenge,
+            )
             problem_docker_run_dir = os.environ['PROBLEM_DOCKER_RUN_FOLDER']
             dname = os.path.join(problem_docker_run_dir, name)
         except Exception as e:
